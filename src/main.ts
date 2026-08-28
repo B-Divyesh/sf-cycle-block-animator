@@ -305,7 +305,10 @@ async function restoreAutosave(): Promise<void> {
 let waitingWorker: ServiceWorker | null = null;
 async function registerServiceWorker(): Promise<void> {
   if (!('serviceWorker' in navigator) || import.meta.env.DEV) return;
-  const registration = await navigator.serviceWorker.register('/sw.js');
+  // The worker filename is stable so that an installed app can discover a new
+  // release. Do not let an HTTP cache hide that script when the browser checks
+  // for an update.
+  const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
   const showUpdate = (worker: ServiceWorker): void => { waitingWorker = worker; document.querySelector<HTMLElement>('#update-toast')!.hidden = false; };
   if (registration.waiting) showUpdate(registration.waiting);
   registration.addEventListener('updatefound', () => registration.installing?.addEventListener('statechange', () => { if (registration.waiting && navigator.serviceWorker.controller) showUpdate(registration.waiting); }));

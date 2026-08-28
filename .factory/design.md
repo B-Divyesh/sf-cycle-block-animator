@@ -13,7 +13,7 @@ The single light treatment is intentional: it models an off-white proofing sheet
 - `ink #1C1A18`: near-black key plate; primary copy and borders (14.7:1 on paper).
 - `ink-muted #625D53`: secondary copy (5.8:1 on paper).
 - `riso-blue #1558D6`: source/edit plate and focus ring (5.1:1 on paper).
-- `riso-red #D53A36`: output/action plate; used with ink text, never white body text.
+- `riso-red #D53A36`: output/action plate; white is used for short bold action labels (4.7:1), never body copy.
 - `riso-yellow #F4C542`: timing markers and selected frames; paired with ink.
 - `success #146B43`, `warning #8A5100`, `danger #A52B2B`: semantic state plus icon/text, never colour alone.
 

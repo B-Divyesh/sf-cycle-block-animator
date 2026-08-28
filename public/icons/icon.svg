@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Cycle Blocks logo">
+  <rect width="512" height="512" rx="76" fill="#f4ebd8"/>
+  <path d="M95 138h208v142H95z" fill="#1558d6" stroke="#1c1a18" stroke-width="20"/>
+  <path d="M209 232h208v142H209z" fill="#d53a36" stroke="#1c1a18" stroke-width="20"/>
+  <path d="M319 118l55 37-60 28M193 394l-55-37 60-28" fill="none" stroke="#1c1a18" stroke-width="22" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

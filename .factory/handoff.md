@@ -1,89 +1,55 @@
-# Cycle Blocks handoff — repair 1
+# Cycle Blocks verification handoff — FAIL
 
-Completed 2026-08-28 from failed candidate `0d14646029e8cffac1d4765d57de37b01260e278`.
+Independent QA completed 2026-08-28 for candidate
+`8224a10283f31b35447fd093105e6a0e1531901e` at
+<https://cycle-block-animator.sociobot.in>.
 
-## What changed
+## Result
 
-- Finished the interrupted PWA delivery and deployed the static `dist/` artifact.
-- Fixed the update-discovery failure mode: the stable `/sw.js` registration now
-  uses `updateViaCache: "none"`, and the committed Static Web Apps configuration
-  sends `Cache-Control: no-cache, no-store, must-revalidate` for that file.
-  The existing waiting-worker toast and `SKIP_WAITING`/`clients.claim()` flow are
-  preserved.
-- Added browser regression coverage for incompatible PNG frame dimensions
-  preserving an already-loaded recipe, first-load local-only privacy, PWA update
-  cache policy, and browser-console errors. The core import/cycle/bake/axe,
-  offline recovery, mobile layout, and keyboard cases remain covered.
+**FAIL — do not promote.** Production matches the candidate byte for byte and the
+online import/cycle/preview/budgeted PNG+JSON export workflow works. Release-blocking
+live and accessibility defects remain:
 
-## How to run and verify
+1. The live service worker precaches unpublished `/staticwebapp.config.json` (404),
+   transitions `installing -> redundant`, and leaves zero registrations. Offline
+   reload and update discovery therefore cannot work on the deployed PWA.
+2. The advertised Studio checkout endpoint returns 404.
+3. The hidden primary PNG input receives keyboard focus with no visible indicator.
+4. A long resolved-frame strip has a serious axe keyboard-scroll finding; 200% text
+   at 390 px overflows by 25 px; block offset accepts values beyond its shown maximum.
 
-```sh
-npm ci
-npm test
-npm run typecheck
-npm run build
-npm run test:e2e
-```
+Hashed assets also have only a 30-second cache lifetime, and browser hardening lacks
+CSP/clickjacking/Permissions Policy headers.
 
-The exact production build command is `npm run build`; it creates
-`dist/index.html`, the manifest, versioned service worker, offline fallback,
-and Static Web Apps configuration. Deploy with:
+## Verification summary
 
 ```sh
-/opt/fleet/lib/deploy-static.sh cycle-block-animator dist
+npm ci             # pass; 0 vulnerabilities
+npm test           # pass; 8/8
+npm run typecheck  # pass
+npm run build      # pass
+npm run test:e2e   # pass; 5/5 (local preview does not reproduce live SW failure)
 ```
 
-## Evidence
+Live checks covered actual PNG/JSON downloads and pixel order, natural filename
+sorting, offset cycles, 60/61-frame limits, a noisy 64 KiB constrained bake,
+project backup/restore, invalid input recovery, privacy/outbound requests, legal
+routes, keyboard, reduced motion, axe, 390 px mobile, 200% text, response headers,
+caching, service-worker lifecycle/offline, and production artifact hashes.
 
-Run in this repair environment on 2026-08-28:
+Lighthouse mobile runs: performance 88/97/98 (median 97), accessibility 100, best
+practices 100, SEO 100; median LCP about 1.08 s, TBT 197 ms, CLS 0. Initial app JS is
+25.82 kB raw and CSS is 10.23 kB raw.
 
-- `npm test`: 8 deterministic timeline/sprite-planning tests passed.
-- `npm run typecheck`: passed.
-- `npm run build`: passed; service worker precached 18 app-shell files.
-  Initial application JavaScript is 25.82 kB raw / 9.29 kB gzip; CSS is
-  10.23 kB raw / 3.32 kB gzip, both within the static-product budget.
-- Lighthouse CLI was also attempted against the local production preview with
-  the supplied Playwright Chromium binary. The CLI could not attach to that
-  sandboxed binary (`Unable to connect to Chrome`), so no synthetic Lighthouse
-  score is reported. The independent Playwright/axe and production-preview
-  browser checks below completed successfully.
-- `npm run test:e2e`: 5 Playwright tests passed. This includes import, offset
-  cycles, bake/download enablement, serious/critical axe scan (0 violations),
-  offline reload after `context.setOffline(true)`, keyboard playback/stepping,
-  390 px mobile no-horizontal-overflow, bad-import recovery, privacy, and PWA
-  update-cache checks.
-- `/opt/fleet/lib/verify-url.sh` passed against local production preview for
-  `/`, `/privacy/`, and `/terms/`: every page returned 200 with its expected
-  title, `lang="en"`, exactly one h1, main landmark, no images missing `alt`,
-  no unlabeled buttons, and no browser console errors.
-- The source is privacy-local on first load: Playwright observed no requests to
-  an external origin. The only later external integration is the documented
-  Sociobot license verification when a buyer has stored a license.
-- Production artifact deployment succeeded as Static Web App
-  `sf-cycle-block-animator`, deployment id
-  `722359bc-c0c9-4d2b-aabd-0cd961f1d613`, at
-  `https://brave-meadow-03680280f.7.azurestaticapps.net`. Live verification
-  there passed with a 200 response, title `Cycle Blocks — loop sprites without
-  duplicate drawings`, `lang=en`, h1/main/alt/button checks, and zero console
-  errors. Its `/sw.js` response has
-  `Cache-Control: no-cache, no-store, must-revalidate`.
+Full evidence and severity details: [verification.md](verification.md).
 
-## Deployment note / next step
+## Next steps
 
-The requested branded CNAME,
-`cycle-block-animator.sociobot.in -> brave-meadow-03680280f.7.azurestaticapps.net`,
-is present in public DNS. At the last check Azure Static Web Apps reported the
-custom-domain state as `Adding` (after DNS validation), so its managed TLS certificate had not yet
-propagated and a strict HTTPS request to the branded hostname correctly failed
-certificate validation. The uploaded artifact itself is live at the default
-Static Web Apps hostname above. Re-run the deploy command or check the custom
-domain after Azure reports `Ready`, then run:
-
-```sh
-VERIFY_NODE_MODULES=/work/repo/node_modules \
-  /opt/fleet/lib/verify-url.sh https://cycle-block-animator.sociobot.in \
-  /tmp/cycle-block-live-evidence
-```
-
-No product-scope gaps are known; custom-domain TLS issuance is external Azure
-provisioning still in progress.
+- Exclude `staticwebapp.config.json` from precaching and add a production-equivalent
+  service-worker install/update/offline test.
+- Enable/register the Sociobot checkout product and verify the hosted redirect.
+- Add visible focus styling to `.file-trigger:focus-within`, make the result strip
+  keyboard-scrollable, fix 200% reflow, and enforce or clarify offset bounds.
+- Apply immutable caching to hashed assets and add CSP/frame/permissions policies.
+- Redeploy, then repeat the live PWA activation, offline reload, update toast,
+  checkout, keyboard, resize, and axe checks before promotion.

@@ -7,11 +7,11 @@ const billingBase = 'https://api.sociobot.in/api/v1/products/cycle-block-animato
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const check = (condition, message) => { if (!condition) throw new Error(message); };
 
-for (const [path, heading] of [['/', 'Repeat drawings. Not the busywork.'], ['/privacy/', 'Privacy'], ['/terms/', 'Terms']]) {
+for (const [path, title] of [['/', 'Cycle Blocks — loop sprites without duplicate drawings'], ['/privacy/', 'Privacy — Cycle Blocks'], ['/terms/', 'Terms — Cycle Blocks']]) {
   const response = await fetch(new URL(path, liveUrl));
   const html = await response.text();
   check(response.ok, `${path} returned ${response.status}`);
-  check(html.includes(`<h1>${heading}</h1>`) || html.includes(`<h1 id="page-title">${heading}</h1>`), `${path} has the wrong h1`);
+  check(html.includes(`<title>${title}</title>`) && html.includes('<html lang="en">'), `${path} has the wrong document identity`);
 }
 
 const rootResponse = await fetch(liveUrl);

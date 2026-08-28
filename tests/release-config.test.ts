@@ -16,6 +16,11 @@ describe('static deployment contract', () => {
     expect(builder).toContain("readFile(join(root, file.slice(1)))");
   });
 
+  it('maps clean legal navigation paths to their precached index documents', () => {
+    const builder = readFileSync('scripts/build-sw.mjs', 'utf8');
+    expect(builder).toContain("pathname.endsWith('/')?pathname+'index.html':pathname+'/index.html'");
+  });
+
   it('sets long-lived assets and no-cache worker policy', () => {
     expect(config.routes.find(({ route }) => route === '/assets/*')?.headers['Cache-Control']).toBe('public, max-age=31536000, immutable');
     expect(config.routes.find(({ route }) => route === '/sw.js')?.headers['Cache-Control']).toBe('no-cache, no-store, must-revalidate');

@@ -1,4 +1,5 @@
 import './styles.css';
+import { pngDataUrlToBlob } from './backup';
 import { bakeSheet, buildMetadata, downloadBlob } from './exporter';
 import { captureReturnedLicense, checkoutUrl, hasOptimisticUnlock, hasStoredLicense, storeLicense, verifyLicense } from './license';
 import { clearProject, loadProject, saveProject } from './storage';
@@ -49,6 +50,15 @@ function setStatus(message: string, tone: typeof statusTone = ''): void {
   statusTone = tone;
   const region = document.querySelector<HTMLElement>('#export-status');
   if (region) { region.textContent = message; region.dataset.tone = tone; }
+}
+
+function invalidateBake(message = 'Recipe changed. Bake again to refresh the export.'): void {
+  const hadBake = lastBake !== null || status.startsWith('Ready:');
+  lastBake = null;
+  if (hadBake) {
+    status = message;
+    statusTone = '';
+  }
 }
 
 function blockMarkup(block: CycleBlock, index: number): string {
@@ -174,7 +184,7 @@ function updateBlock(event: Event): void {
   const field = input.dataset.field as 'start' | 'end' | 'repeats' | 'offset';
   block[field] = Number(input.value) - (field === 'start' || field === 'end' ? 1 : 0);
   Object.assign(block, normalizeBlock(block, frames.length));
-  lastBake = null; currentFrame = 0; scheduleSave(); render();
+  invalidateBake(); currentFrame = 0; scheduleSave(); render();
 }
 
 function updateSettings(): void {
@@ -185,15 +195,15 @@ function updateSettings(): void {
     padding: Math.min(64, Math.max(0, Number(document.querySelector<HTMLInputElement>('#padding')?.value) || 0)),
     powerOfTwo: document.querySelector<HTMLInputElement>('#power-two')?.checked ?? false
   };
-  lastBake = null; scheduleSave(); render();
+  invalidateBake('Export settings changed. Bake again to refresh the export.'); scheduleSave(); render();
 }
 
 function handleAction(event: Event): void {
   const button = event.currentTarget as HTMLElement;
   switch (button.dataset.action) {
     case 'play': if (playing) stopPlayback(true); else startPlayback(); break;
-    case 'add-block': blocks.push({ id: makeId(), start: 0, end: Math.max(0, frames.length - 1), repeats: 1, offset: 0 }); lastBake = null; scheduleSave(); render(); break;
-    case 'remove-block': { const id = button.closest<HTMLElement>('[data-block]')?.dataset.block; blocks = blocks.filter((item) => item.id !== id); lastBake = null; scheduleSave(); render(); break; }
+    case 'add-block': blocks.push({ id: makeId(), start: 0, end: Math.max(0, frames.length - 1), repeats: 1, offset: 0 }); invalidateBake(); scheduleSave(); render(); break;
+    case 'remove-block': { const id = button.closest<HTMLElement>('[data-block]')?.dataset.block; blocks = blocks.filter((item) => item.id !== id); invalidateBake(); scheduleSave(); render(); break; }
     case 'clear': clearAll(); break;
     case 'bake': void runBake(); break;
     case 'download-png': if (lastBake) downloadBlob(lastBake.blob, `${cleanName(projectName)}.png`); break;
@@ -279,7 +289,7 @@ async function restoreBackup(file?: File): Promise<void> {
   try {
     const packed = JSON.parse(await file.text()) as Omit<PersistedProject, 'frames'> & { frames: Array<Omit<SourceFrame,'url'|'blob'> & { data: string }> };
     if (packed.version !== 1 || !Array.isArray(packed.frames) || !Array.isArray(packed.blocks)) throw new Error('That is not a Cycle Blocks v1 project.');
-    const restored = await Promise.all(packed.frames.map(async (item) => { const blob = await (await fetch(item.data)).blob(); return { id: item.id, name: item.name, width: item.width, height: item.height, blob, url: URL.createObjectURL(blob) }; }));
+    const restored = packed.frames.map((item) => { const blob = pngDataUrlToBlob(item.data); return { id: item.id, name: item.name, width: item.width, height: item.height, blob, url: URL.createObjectURL(blob) }; });
     frames.forEach((frame) => URL.revokeObjectURL(frame.url)); frames = restored; blocks = packed.blocks.map((block) => normalizeBlock(block, frames.length)); settings = packed.settings; projectName = cleanName(packed.name); lastBake = null; currentFrame = 0; scheduleSave(); render(); setImportStatus(`Restored ${frames.length} frames from ${file.name}.`);
   } catch (error) { setImportStatus(error instanceof Error ? error.message : 'That project could not be restored.', true); }
 }

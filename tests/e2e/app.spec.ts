@@ -4,6 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAABIeJ9nAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGUExURdU6Nv///9n7FRsAAAABYktHRAH/Ai3eAAAAB3RJTUUH6ggcAyUFy2urkwAAAAxJREFUCNdjYGBgAAAABAABJzQnCgAAAABJRU5ErkJggg==', 'base64');
 const appOrigin = new URL(process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173').origin;
+const productionCsp = "default-src 'self'; base-uri 'self'; connect-src 'self' https://api.sociobot.in; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' blob: data:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'";
 
 function collectConsoleErrors(page: import('@playwright/test').Page): string[] {
   const errors: string[] = [];
@@ -56,6 +57,50 @@ test('restores its shell and project while offline', async ({ page, context }) =
   await expect(page.getByRole('heading', { name: 'Repeat drawings. Not the busywork.' })).toBeVisible();
   await expect(page.getByText('Recovered 1 locally saved frames.')).toBeVisible();
   await expect(page.getByText('Offline — edits still save')).toBeVisible();
+});
+
+test('serves the correct legal documents on direct offline navigation', async ({ page, context }) => {
+  await page.goto('/');
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+
+  await context.setOffline(true);
+  await page.goto('/privacy/');
+  await expect(page.getByRole('heading', { level: 1, name: 'Privacy' })).toBeVisible();
+  await expect(page).toHaveURL(/\/privacy\/$/);
+  await page.goto('/terms/');
+  await expect(page.getByRole('heading', { level: 1, name: 'Terms' })).toBeVisible();
+  await expect(page).toHaveURL(/\/terms\/$/);
+});
+
+test('round-trips a project backup under the production CSP', async ({ page }) => {
+  const errors = collectConsoleErrors(page);
+  await page.route('**/*', async (route) => {
+    const response = await route.fetch();
+    const headers = response.headers();
+    if (route.request().resourceType() === 'document') headers['content-security-policy'] = productionCsp;
+    await route.fulfill({ response, headers });
+  });
+  await page.goto('/');
+  await page.locator('#png-input').setInputFiles([
+    { name: 'backup_1.png', mimeType: 'image/png', buffer: png },
+    { name: 'backup_2.png', mimeType: 'image/png', buffer: png }
+  ]);
+  await expect(page.getByText('2 PNG frames loaded')).toBeVisible();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download project' }).click();
+  const download = await downloadPromise;
+  const backupPath = await download.path();
+  expect(backupPath).not.toBeNull();
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Clear project' }).click();
+  await expect(page.locator('.thumb')).toHaveCount(0);
+  await page.locator('#project-input').setInputFiles(backupPath!);
+  await expect(page.locator('#import-status')).toContainText('Restored 2 frames');
+  await expect(page.locator('.thumb')).toHaveCount(2);
+  expect(errors).toEqual([]);
 });
 
 test('rejects mismatched PNG canvases without losing the current recipe', async ({ page }) => {
@@ -114,6 +159,19 @@ test('fits the phone viewport and keyboard controls are usable', async ({ page }
   await expect(page.getByRole('button', { name: 'Pause animation' })).toBeVisible();
 });
 
+test('keeps every mobile brand and legal link target at least 44px square', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const targets = page.locator('.brand, .pro-box small a, .site-footer nav a');
+  await expect(targets).toHaveCount(5);
+  for (let index = 0; index < await targets.count(); index += 1) {
+    const box = await targets.nth(index).boundingBox();
+    expect(box, `target ${index} has geometry`).not.toBeNull();
+    expect(box!.width, `target ${index} width`).toBeGreaterThanOrEqual(44);
+    expect(box!.height, `target ${index} height`).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test('shows keyboard focus on the primary file picker', async ({ page }) => {
   await page.goto('/');
   for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -150,6 +208,26 @@ test('clamps pass offset to its advertised block bound', async ({ page }) => {
   await offset.blur();
   await expect(offset).toHaveValue('2');
   await expect(page.locator('.block-result')).toContainText('starts 2 frames later');
+});
+
+test('invalidates a stale ready result after recipe or export-setting edits', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#png-input').setInputFiles([{ name: 'edit_1.png', mimeType: 'image/png', buffer: png }]);
+  await page.getByRole('button', { name: 'Bake to budget' }).click();
+  await expect(page.locator('#export-status')).toContainText('Ready:');
+
+  await page.locator('[data-field="repeats"]').fill('4');
+  await page.locator('[data-field="repeats"]').blur();
+  await expect(page.locator('#export-status')).toHaveText('Recipe changed. Bake again to refresh the export.');
+  await expect(page.getByRole('button', { name: 'Download PNG' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Download JSON' })).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Bake to budget' }).click();
+  await expect(page.locator('#export-status')).toContainText('Ready:');
+  await page.locator('#fps').fill('24');
+  await page.locator('#fps').blur();
+  await expect(page.locator('#export-status')).toHaveText('Export settings changed. Bake again to refresh the export.');
+  await expect(page.getByRole('button', { name: 'Download PNG' })).toBeDisabled();
 });
 
 test('reflows at 200% text size on a 390px viewport', async ({ page }) => {

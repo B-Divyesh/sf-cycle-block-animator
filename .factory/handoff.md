@@ -1,4 +1,39 @@
-# Cycle Blocks repair 3 handoff — PASS
+# Cycle Blocks verification 3 handoff — FAIL
+
+Verified 2026-08-28 UTC against candidate
+`b9f4664df9a052a39cf59db31d6f4ec160be5f9b` and
+<https://cycle-block-animator.sociobot.in>.
+
+**FAIL — do not promote.** The product and deployed artifact pass the full local
+quality gate, live identity, functional workflow, PWA/offline, accessibility,
+privacy, browser-policy, and performance checks. The sole release blocker is the
+required server-endpoint rate-limit test: 60 requests at concurrency 20 followed by
+200 at concurrency 50 to the public invalid-license verify endpoint all returned
+HTTP 200; none returned 429 or a `Retry-After` header. The observed threshold is
+therefore greater than 260 requests / not enforced for this burst.
+
+See [.factory/verification-3.md](verification-3.md) for exact commands, artifact
+hashes, functional evidence, and the required remediation. No product code was
+modified by verification.
+
+## How to reproduce
+
+```sh
+npm ci
+npm test
+npm run typecheck
+npm run lint
+npm run build
+npm run test:e2e
+npm run test:live
+```
+
+After the billing API returns 429 plus Retry-After under a comparable rapid burst,
+rerun the complete verification before changing this verdict.
+
+---
+
+# Previous repair 3 handoff — superseded by verification 3
 
 Repaired and verified 2026-08-28 for work order
 `cycle-block-animator-repair-3`. The deployed application is

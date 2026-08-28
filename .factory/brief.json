@@ -1,0 +1,10 @@
+{
+  "slug": "cycle-block-animator",
+  "title": "Cycle Blocks",
+  "territory": "games-creative",
+  "user": "2D animators exporting game loops who need to repeat or offset a block of frames without copying hundreds of drawings, then ship a web-safe sprite sequence.",
+  "smallest_useful_product": "A browser timeline that imports numbered PNGs, defines cyclic blocks and offsets, previews the resulting loop, and exports a constrained sprite sheet plus JSON.",
+  "artifact_class": "pwa-offline",
+  "monetization": "one-time",
+  "constraints": "Keep imported art local; respect texture dimensions and browser memory limits; preserve source frame ordering and avoid included copyrighted sample art."
+}

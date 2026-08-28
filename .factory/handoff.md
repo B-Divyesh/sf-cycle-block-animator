@@ -42,6 +42,11 @@ Run in this repair environment on 2026-08-28:
 - `npm run build`: passed; service worker precached 18 app-shell files.
   Initial application JavaScript is 25.82 kB raw / 9.29 kB gzip; CSS is
   10.23 kB raw / 3.32 kB gzip, both within the static-product budget.
+- Lighthouse CLI was also attempted against the local production preview with
+  the supplied Playwright Chromium binary. The CLI could not attach to that
+  sandboxed binary (`Unable to connect to Chrome`), so no synthetic Lighthouse
+  score is reported. The independent Playwright/axe and production-preview
+  browser checks below completed successfully.
 - `npm run test:e2e`: 5 Playwright tests passed. This includes import, offset
   cycles, bake/download enablement, serious/critical axe scan (0 violations),
   offline reload after `context.setOffline(true)`, keyboard playback/stepping,

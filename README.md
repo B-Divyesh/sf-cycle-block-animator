@@ -33,6 +33,7 @@ npm run dev
 ```sh
 npm test            # deterministic recipe and sheet-planning tests
 npm run typecheck   # strict TypeScript
+npm run lint        # ESLint for application, tests, and build scripts
 npm run build       # exact production command; outputs dist/index.html
 npm run test:e2e    # Chromium import/export, axe, mobile, and offline tests
 ```
@@ -41,7 +42,10 @@ Playwright is pinned to 1.58.2. In the factory worker, browsers are read from `P
 
 ## Deploy
 
-Deploy the contents of `dist/` as a static site. The generated `sw.js` fingerprints and precaches the complete app shell. Configure clean path handling for `/privacy/` and `/terms/`; both also exist as physical `index.html` directories in the build.
+Deploy the contents of `dist/` as a static site. The generated `sw.js` fingerprints
+and precaches the publishable app shell while excluding host-consumed deployment
+configuration. Configure clean path handling for `/privacy/` and `/terms/`; both
+also exist as physical `index.html` directories in the build.
 
 ## Data and browser limits
 

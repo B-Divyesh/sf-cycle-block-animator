@@ -10,12 +10,13 @@ export function normalizeBlock(block: CycleBlock, frameCount: number): CycleBloc
   const last = Math.max(0, frameCount - 1);
   const start = Math.min(last, Math.max(0, Math.trunc(block.start)));
   const end = Math.min(last, Math.max(start, Math.trunc(block.end)));
+  const maxOffset = end - start;
   return {
     ...block,
     start,
     end,
     repeats: Math.min(120, Math.max(1, Math.trunc(block.repeats))),
-    offset: Math.min(999, Math.max(-999, Math.trunc(block.offset)))
+    offset: Math.min(maxOffset, Math.max(-maxOffset, Math.trunc(block.offset)))
   };
 }
 

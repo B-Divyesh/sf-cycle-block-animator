@@ -60,6 +60,8 @@ h3 { font-size: 1.05rem; margin: 0; }
 .panel--blue { box-shadow: 7px 7px 0 var(--blue); }
 .panel--red { box-shadow: 7px 7px 0 var(--red); }
 .panel-head { display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 16px; }
+.panel-head > :first-child { min-width: 0; }
+.panel-head h2 { overflow-wrap: anywhere; }
 .step { display: inline-grid; place-items: center; flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: #fff; font-weight: 900; }
 .help { color: var(--muted); margin: .45rem 0 0; max-width: 58ch; }
 .empty { border: 2px dashed var(--muted); padding: 20px; text-align: center; background: #f4ebd866; }
@@ -71,6 +73,7 @@ h3 { font-size: 1.05rem; margin: 0; }
 .drop-zone.is-dragging { background: #1558d61a; outline: 5px solid var(--blue); outline-offset: -8px; }
 input[type="file"] { max-width: 100%; }
 .file-trigger input { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; }
+.file-trigger:focus-within { outline: 4px solid var(--blue); outline-offset: 3px; }
 
 .source-summary, .export-summary { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-bottom: 16px; }
 .metric strong { display: block; font: 900 1.1rem/1.2 Rockwell, "Courier New", serif; font-variant-numeric: tabular-nums; }

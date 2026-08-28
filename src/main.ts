@@ -33,7 +33,7 @@ function projectForStorage(): PersistedProject {
     version: 1,
     name: projectName,
     updatedAt: Date.now(),
-    frames: frames.map(({ url: _url, ...frame }) => frame),
+    frames: frames.map(({ id, name, width, height, blob }) => ({ id, name, width, height, blob })),
     blocks,
     settings
   };
@@ -96,7 +96,7 @@ function render(): void {
       <div class="column">
         <section class="panel panel--red" aria-labelledby="preview-title"><div class="panel-head"><div><h2 id="preview-title">Loop proof</h2><p class="help">Space plays or pauses. Left and right arrows step frames.</p></div><span class="step" aria-hidden="true">3</span></div><div class="preview-stage" tabindex="0" aria-label="Animation preview. Use Space to play and arrow keys to step.">${preview}</div>
           <div class="preview-controls"><button class="transport" type="button" data-action="play" aria-label="${playing ? 'Pause' : 'Play'} animation" ${result.length ? '' : 'disabled'}>${playing ? 'Ⅱ' : '▶'}</button><input id="scrubber" class="scrubber" type="range" min="0" max="${Math.max(0,result.length - 1)}" value="${currentFrame}" aria-label="Preview frame" ${result.length ? '' : 'disabled'}><span id="frame-readout" class="frame-readout">${result.length ? `${currentFrame + 1} / ${result.length}` : '0 / 0'}</span><span class="shortcut">Source ${result.length ? source + 1 : '—'}</span></div>
-          ${result.length ? `<ol class="result-strip" aria-label="Resolved output frames">${result.slice(0, 180).map((item,index) => `<li class="result-frame${index === currentFrame ? ' is-current' : ''}" title="Output ${index + 1} uses source ${item + 1}">${item + 1}</li>`).join('')}</ol>` : ''}
+          ${result.length ? `<ol class="result-strip" tabindex="0" aria-label="Resolved output frames. Use arrow keys to scroll the strip.">${result.slice(0, 180).map((item,index) => `<li class="result-frame${index === currentFrame ? ' is-current' : ''}" title="Output ${index + 1} uses source ${item + 1}">${item + 1}</li>`).join('')}</ol>` : ''}
         </section>
         <section id="export-panel" class="panel panel--red" aria-labelledby="export-title"><div class="panel-head"><div><h2 id="export-title">Constrained export</h2><p class="help">The baker scales down only if needed to meet both limits.</p></div><span class="step" aria-hidden="true">4</span></div>
           <div class="settings"><label>Playback FPS<input id="fps" type="number" min="1" max="60" value="${settings.fps}"></label><label>Texture limit<select id="texture-limit"><option value="1024" ${settings.maxTexture === 1024 ? 'selected' : ''}>1024 px</option><option value="2048" ${settings.maxTexture === 2048 ? 'selected' : ''}>2048 px</option><option value="4096" ${settings.maxTexture === 4096 ? 'selected' : ''} ${studio ? '' : 'disabled'}>4096 px · Studio</option><option value="8192" ${settings.maxTexture === 8192 ? 'selected' : ''} ${studio ? '' : 'disabled'}>8192 px · Studio</option></select></label><label>PNG budget (KiB)<input id="budget" type="number" min="64" max="524288" value="${settings.targetKiB}"></label><label>Padding (px)<input id="padding" type="number" min="0" max="64" value="${settings.padding}"></label><label class="check"><input id="power-two" type="checkbox" ${settings.powerOfTwo ? 'checked' : ''}> Power-of-two sheet</label></div>
@@ -117,9 +117,9 @@ function render(): void {
 function bindEvents(): void {
   document.querySelector<HTMLInputElement>('#png-input')?.addEventListener('change', (event) => importPngs((event.target as HTMLInputElement).files));
   document.querySelector<HTMLInputElement>('#project-input')?.addEventListener('change', (event) => restoreBackup((event.target as HTMLInputElement).files?.[0]));
-  document.querySelector('#source-panel')?.addEventListener('dragover', (event) => { event.preventDefault(); event.currentTarget instanceof HTMLElement && event.currentTarget.classList.add('is-dragging'); });
-  document.querySelector('#source-panel')?.addEventListener('dragleave', (event) => event.currentTarget instanceof HTMLElement && event.currentTarget.classList.remove('is-dragging'));
-  document.querySelector('#source-panel')?.addEventListener('drop', (event) => { event.preventDefault(); event.currentTarget instanceof HTMLElement && event.currentTarget.classList.remove('is-dragging'); importPngs((event as DragEvent).dataTransfer?.files ?? null); });
+  document.querySelector('#source-panel')?.addEventListener('dragover', (event) => { event.preventDefault(); if (event.currentTarget instanceof HTMLElement) event.currentTarget.classList.add('is-dragging'); });
+  document.querySelector('#source-panel')?.addEventListener('dragleave', (event) => { if (event.currentTarget instanceof HTMLElement) event.currentTarget.classList.remove('is-dragging'); });
+  document.querySelector('#source-panel')?.addEventListener('drop', (event) => { event.preventDefault(); if (event.currentTarget instanceof HTMLElement) event.currentTarget.classList.remove('is-dragging'); importPngs((event as DragEvent).dataTransfer?.files ?? null); });
   document.querySelectorAll<HTMLButtonElement>('[data-source]').forEach((button) => button.addEventListener('click', () => { selectedSource = Number(button.dataset.source); currentFrame = Math.max(0, sequence().indexOf(selectedSource)); stopPlayback(); render(); }));
   document.querySelectorAll<HTMLElement>('[data-action]').forEach((element) => element.addEventListener('click', handleAction));
   document.querySelectorAll<HTMLInputElement>('.block input').forEach((input) => input.addEventListener('change', updateBlock));
@@ -191,7 +191,7 @@ function updateSettings(): void {
 function handleAction(event: Event): void {
   const button = event.currentTarget as HTMLElement;
   switch (button.dataset.action) {
-    case 'play': playing ? stopPlayback(true) : startPlayback(); break;
+    case 'play': if (playing) stopPlayback(true); else startPlayback(); break;
     case 'add-block': blocks.push({ id: makeId(), start: 0, end: Math.max(0, frames.length - 1), repeats: 1, offset: 0 }); lastBake = null; scheduleSave(); render(); break;
     case 'remove-block': { const id = button.closest<HTMLElement>('[data-block]')?.dataset.block; blocks = blocks.filter((item) => item.id !== id); lastBake = null; scheduleSave(); render(); break; }
     case 'clear': clearAll(); break;
@@ -321,7 +321,7 @@ window.addEventListener('online', () => { document.body.classList.remove('is-off
 window.addEventListener('offline', () => { document.body.classList.add('is-offline'); });
 window.addEventListener('keydown', (event) => {
   if ((event.target as HTMLElement).matches('input, select, textarea, button')) return;
-  if (event.code === 'Space') { event.preventDefault(); playing ? stopPlayback(true) : startPlayback(); }
+  if (event.code === 'Space') { event.preventDefault(); if (playing) stopPlayback(true); else startPlayback(); }
   if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); stopPlayback(); currentFrame += event.key === 'ArrowRight' ? 1 : -1; updatePreview(); }
 });
 

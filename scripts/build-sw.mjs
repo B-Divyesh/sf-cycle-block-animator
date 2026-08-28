@@ -3,11 +3,14 @@ import { join, relative } from 'node:path';
 
 const root = new URL('../dist', import.meta.url).pathname;
 const files = [];
+// Static Web Apps consumes this file during deployment instead of publishing
+// it. Pre-caching it makes Cache.addAll() reject on the live origin.
+const deploymentOnlyFiles = new Set(['staticwebapp.config.json']);
 async function walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) await walk(full);
-    else if (!entry.name.endsWith('.map') && entry.name !== 'sw.js') files.push('/' + relative(root, full));
+    else if (!entry.name.endsWith('.map') && entry.name !== 'sw.js' && !deploymentOnlyFiles.has(entry.name)) files.push('/' + relative(root, full));
   }
 }
 await walk(root);

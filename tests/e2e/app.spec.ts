@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { readFile, writeFile } from 'node:fs/promises';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAABIeJ9nAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGUExURdU6Nv///9n7FRsAAAABYktHRAH/Ai3eAAAAB3RJTUUH6ggcAyUFy2urkwAAAAxJREFUCNdjYGBgAAAABAABJzQnCgAAAABJRU5ErkJggg==', 'base64');
 
@@ -32,9 +33,20 @@ test('imports, cycles, bakes, and remains accessible', async ({ page }) => {
 });
 
 test('restores its shell and project while offline', async ({ page, context }) => {
+  const requestedPaths: string[] = [];
+  context.on('request', (request) => requestedPaths.push(new URL(request.url()).pathname));
   await page.goto('/');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.active?.state)).toBe('activated');
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  expect(requestedPaths).not.toContain('/staticwebapp.config.json');
+  const cachedShell = await page.evaluate(async () => {
+    const names = await caches.keys();
+    const requests = await caches.open(names.find((name) => name.startsWith('cycle-blocks-'))!).then((cache) => cache.keys());
+    return requests.map((request) => new URL(request.url).pathname);
+  });
+  expect(cachedShell).toContain('/index.html');
+  expect(cachedShell).not.toContain('/staticwebapp.config.json');
   await page.locator('#png-input').setInputFiles([{ name: 'loop_1.png', mimeType: 'image/png', buffer: png }]);
   await expect(page.getByText('1 PNG frame loaded')).toBeVisible();
   await page.waitForTimeout(500);
@@ -99,4 +111,70 @@ test('fits the phone viewport and keyboard controls are usable', async ({ page }
   await expect(page.locator('#frame-readout')).toHaveText('2 / 2');
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: 'Pause animation' })).toBeVisible();
+});
+
+test('shows keyboard focus on the primary file picker', async ({ page }) => {
+  await page.goto('/');
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await page.keyboard.press('Tab');
+    if (await page.evaluate(() => document.activeElement?.id === 'png-input')) break;
+  }
+  await expect(page.locator('#png-input')).toBeFocused();
+  const trigger = page.locator('.file-trigger').filter({ has: page.locator('#png-input') });
+  await expect(trigger).toHaveCSS('outline-style', 'solid');
+  await expect(trigger).toHaveCSS('outline-width', '4px');
+});
+
+test('keeps long timelines keyboard-scrollable and axe-clean', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#png-input').setInputFiles([{ name: 'long_1.png', mimeType: 'image/png', buffer: png }]);
+  await page.locator('[data-field="repeats"]').fill('61');
+  await page.locator('[data-field="repeats"]').blur();
+  await expect(page.locator('.result-frame')).toHaveCount(61);
+  await expect(page.locator('.result-strip')).toHaveAttribute('tabindex', '0');
+  const results = await new AxeBuilder({ page: page as never }).include('.result-strip').analyze();
+  expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
+});
+
+test('clamps pass offset to its advertised block bound', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#png-input').setInputFiles([
+    { name: 'offset_1.png', mimeType: 'image/png', buffer: png },
+    { name: 'offset_2.png', mimeType: 'image/png', buffer: png },
+    { name: 'offset_3.png', mimeType: 'image/png', buffer: png }
+  ]);
+  const offset = page.locator('[data-field="offset"]');
+  await expect(offset).toHaveAttribute('max', '2');
+  await offset.fill('100');
+  await offset.blur();
+  await expect(offset).toHaveValue('2');
+  await expect(page.locator('.block-result')).toContainText('starts 2 frames later');
+});
+
+test('reflows at 200% text size on a 390px viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  const step = await page.locator('#export-panel .step').boundingBox();
+  expect(step).not.toBeNull();
+  expect(step!.x + step!.width).toBeLessThanOrEqual(390);
+});
+
+test('discovers and applies a waiting service-worker update', async ({ page }) => {
+  const workerPath = new URL('../../dist/sw.js', import.meta.url);
+  const original = await readFile(workerPath, 'utf8');
+  try {
+    await page.goto('/');
+    await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+    await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+    await writeFile(workerPath, `${original}\n// update-regression-${Date.now()}\n`);
+    await page.evaluate(async () => { await (await navigator.serviceWorker.getRegistration())!.update(); });
+    await expect(page.locator('#update-toast')).toBeVisible();
+    await page.getByRole('button', { name: 'Update now' }).click();
+    await expect(page.getByRole('heading', { name: 'Repeat drawings. Not the busywork.' })).toBeVisible();
+    await expect(page.locator('#update-toast')).toBeHidden();
+  } finally {
+    await writeFile(workerPath, original);
+  }
 });

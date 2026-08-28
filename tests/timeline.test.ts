@@ -20,7 +20,8 @@ describe('cycle resolution', () => {
   });
 
   it('clamps invalid recipe inputs', () => {
-    expect(normalizeBlock({ id: 'a', start: -5, end: 99, repeats: 0, offset: 2000 }, 5)).toEqual({ id: 'a', start: 0, end: 4, repeats: 1, offset: 999 });
+    expect(normalizeBlock({ id: 'a', start: -5, end: 99, repeats: 0, offset: 2000 }, 5)).toEqual({ id: 'a', start: 0, end: 4, repeats: 1, offset: 4 });
+    expect(normalizeBlock({ id: 'b', start: 1, end: 3, repeats: 2, offset: -100 }, 5).offset).toBe(-2);
     expect(resolveTimeline([], 5)).toEqual([]);
   });
 });

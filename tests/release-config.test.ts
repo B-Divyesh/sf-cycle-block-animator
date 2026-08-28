@@ -12,6 +12,8 @@ describe('static deployment contract', () => {
     const builder = readFileSync('scripts/build-sw.mjs', 'utf8');
     expect(builder).toContain("new Set(['staticwebapp.config.json'])");
     expect(builder).toContain('!deploymentOnlyFiles.has(entry.name)');
+    expect(builder).toContain("createHash('sha256')");
+    expect(builder).toContain("readFile(join(root, file.slice(1)))");
   });
 
   it('sets long-lived assets and no-cache worker policy', () => {

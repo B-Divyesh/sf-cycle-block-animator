@@ -20,7 +20,8 @@ factory billing owner registers it.
   shell, and reloads the saved project offline.
 - Added a production-boundary assertion that the worker never requests or caches
   the unpublished config, plus an exact waiting-worker/update-toast/skip-waiting
-  regression.
+  regression. Worker versions hash every shell file's bytes, so stable-name asset
+  changes also trigger update discovery.
 - Added visible `:focus-within` treatment to every visible file-picker trigger.
 - Made the resolved-frame strip focusable and keyboard-scrollable; axe is clean at
   61 frames.

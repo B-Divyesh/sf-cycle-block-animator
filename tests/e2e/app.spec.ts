@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { readFile, writeFile } from 'node:fs/promises';
 
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAABIeJ9nAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAAGUExURdU6Nv///9n7FRsAAAABYktHRAH/Ai3eAAAAB3RJTUUH6ggcAyUFy2urkwAAAAxJREFUCNdjYGBgAAAABAABJzQnCgAAAABJRU5ErkJggg==', 'base64');
+const appOrigin = new URL(process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173').origin;
 
 function collectConsoleErrors(page: import('@playwright/test').Page): string[] {
   const errors: string[] = [];
@@ -85,7 +86,7 @@ test('first-load privacy is local-only and the PWA update script bypasses caches
   const externalRequests: string[] = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
-    if (url.origin !== 'http://127.0.0.1:4173' && url.protocol !== 'blob:') externalRequests.push(request.url());
+    if (url.origin !== appOrigin && url.protocol !== 'blob:') externalRequests.push(request.url());
   });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Repeat drawings. Not the busywork.' })).toBeVisible();

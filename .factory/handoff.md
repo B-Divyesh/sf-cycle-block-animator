@@ -68,7 +68,7 @@ Run in this repair environment on 2026-08-28:
 The requested branded CNAME,
 `cycle-block-animator.sociobot.in -> brave-meadow-03680280f.7.azurestaticapps.net`,
 is present in public DNS. At the last check Azure Static Web Apps reported the
-custom-domain state as `Validating`, so its managed TLS certificate had not yet
+custom-domain state as `Adding` (after DNS validation), so its managed TLS certificate had not yet
 propagated and a strict HTTPS request to the branded hostname correctly failed
 certificate validation. The uploaded artifact itself is live at the default
 Static Web Apps hostname above. Re-run the deploy command or check the custom

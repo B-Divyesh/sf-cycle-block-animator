@@ -72,9 +72,10 @@ npm run test:e2e
 
 Deployment and live evidence:
 
-- Pushed repair commits `2089103` and `5d7c7c8` to `origin/main`.
+- Pushed repair commits `2089103`, `5d7c7c8`, and `c2cb758` to `origin/main`.
 - Static Web Apps deployment IDs: `b857f376-d584-4553-b6c5-1b745cf42044` and final
-  MIME-policy deployment `87d58c5c-684e-4ee4-aab1-5e1150df2488`.
+  MIME-policy deployment `87d58c5c-684e-4ee4-aab1-5e1150df2488`, and final
+  content-fingerprinted-worker deployment `d9a0c9fa-66f0-40f5-800e-6e41bc661f1a`.
 - Branded URL: <https://cycle-block-animator.sociobot.in> (TLS and 200 ready).
 - All 23 published build files match local `dist/` byte for byte; deployment-only
   `/staticwebapp.config.json` correctly returns 404. Root HTML SHA-256 is

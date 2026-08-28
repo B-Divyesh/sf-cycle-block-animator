@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cycle-block-animator.sociobot.in/sitemap.xml

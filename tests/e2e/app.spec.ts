@@ -194,7 +194,7 @@ test('removes decorative transitions when reduced motion is requested', async ({
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/demo/');
   await expect(page.locator('.thumb')).toHaveCount(4);
-  const duration = await page.locator('.button').first().evaluate((element) => parseFloat(getComputedStyle(element).transitionDuration));
+  const duration = await page.locator('[data-action="bake"]').evaluate((element) => parseFloat(getComputedStyle(element).transitionDuration));
   expect(duration).toBeLessThanOrEqual(.001);
 });
 

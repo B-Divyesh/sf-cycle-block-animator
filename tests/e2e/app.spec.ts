@@ -54,7 +54,7 @@ test('restores its shell and project while offline', async ({ page, context }) =
   await page.waitForTimeout(500);
   await context.setOffline(true);
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Repeat drawings. Not the busywork.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Build offset sprite loops from PNG frames' })).toBeVisible();
   await expect(page.getByText('Recovered 1 locally saved frames.')).toBeVisible();
   await expect(page.getByText('Offline — edits still save')).toBeVisible();
 });
@@ -134,13 +134,68 @@ test('first-load privacy is local-only and the PWA update script bypasses caches
     if (url.origin !== appOrigin && url.protocol !== 'blob:') externalRequests.push(request.url());
   });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Repeat drawings. Not the busywork.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Build offset sprite loops from PNG frames' })).toBeVisible();
   expect(externalRequests).toEqual([]);
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/manifest.webmanifest');
   await expect.poll(() => page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
     return registration.updateViaCache;
   })).toBe('none');
+});
+
+test('states the job, audience, first action, and three facts before scrolling on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: 'Build offset sprite loops from PNG frames' })).toBeVisible();
+  await expect(page.getByText('For 2D game animators who need repeated motion without copying source frames.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Try it with sample data' })).toBeVisible();
+  await expect(page.locator('.plain-facts li')).toHaveCount(3);
+  const facts = await page.locator('.plain-facts').boundingBox();
+  expect(facts).not.toBeNull();
+  expect(facts!.y).toBeLessThan(664);
+});
+
+test('serves complete route metadata and a 1200 by 630 social image', async ({ page, request }) => {
+  for (const [path, canonical] of [['/', '/'], ['/demo/', '/demo/'], ['/privacy/', '/privacy/'], ['/terms/', '/terms/']]) {
+    await page.goto(path);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://cycle-block-animator.sociobot.in${canonical}`);
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Cycle Blocks/);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /cycle-blocks-social\.png$/);
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/icons/apple-touch-icon.png');
+  }
+  const image = Buffer.from(await (await request.get('/assets/cycle-blocks-social.png')).body());
+  expect(image.readUInt32BE(16)).toBe(1200);
+  expect(image.readUInt32BE(20)).toBe(630);
+});
+
+test('returns a designed 404 response with recovery links', async ({ page }) => {
+  const response = await page.goto('/does-not-exist');
+  expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle('Page not found — Cycle Blocks');
+  await expect(page.getByRole('heading', { level: 1, name: 'This page does not exist' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open the editor' })).toHaveAttribute('href', '/');
+  await expect(page.getByRole('link', { name: 'Try sample data' })).toHaveAttribute('href', '/demo/');
+});
+
+test('keeps every public route semantic and free of serious axe findings', async ({ page }) => {
+  const errors = collectConsoleErrors(page);
+  for (const path of ['/', '/demo/', '/privacy/', '/terms/', '/does-not-exist']) {
+    await page.goto(path);
+    await expect(page.locator('h1')).toHaveCount(1);
+    await expect(page.locator('main')).toHaveCount(1);
+    const results = await new AxeBuilder({ page: page as never }).analyze();
+    expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? '')), path).toEqual([]);
+  }
+  expect(errors.filter((message) => !message.includes('server responded with a status of 404'))).toEqual([]);
+});
+
+test('removes decorative transitions when reduced motion is requested', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/demo/');
+  await expect(page.locator('.thumb')).toHaveCount(4);
+  const duration = await page.locator('.button').first().evaluate((element) => parseFloat(getComputedStyle(element).transitionDuration));
+  expect(duration).toBeLessThanOrEqual(.001);
 });
 
 test('fits the phone viewport and keyboard controls are usable', async ({ page }) => {
@@ -251,7 +306,7 @@ test('discovers and applies a waiting service-worker update', async ({ page }) =
     await page.evaluate(async () => { await (await navigator.serviceWorker.getRegistration())!.update(); });
     await expect(page.locator('#update-toast')).toBeVisible();
     await page.getByRole('button', { name: 'Update now' }).click();
-    await expect(page.getByRole('heading', { name: 'Repeat drawings. Not the busywork.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Build offset sprite loops from PNG frames' })).toBeVisible();
     await expect(page.locator('#update-toast')).toBeHidden();
   } finally {
     await writeFile(workerPath, original);

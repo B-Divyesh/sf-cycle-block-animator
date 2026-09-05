@@ -7,12 +7,27 @@ const billingBase = 'https://api.sociobot.in/api/v1/products/cycle-block-animato
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const check = (condition, message) => { if (!condition) throw new Error(message); };
 
-for (const [path, title] of [['/', 'Cycle Blocks — loop sprites without duplicate drawings'], ['/privacy/', 'Privacy — Cycle Blocks'], ['/terms/', 'Terms — Cycle Blocks']]) {
+for (const [path, title, canonical] of [
+  ['/', 'Cycle Blocks — Build offset sprite loops', '/'],
+  ['/demo/', 'Demo — Cycle Blocks', '/demo/'],
+  ['/privacy/', 'Privacy — Cycle Blocks', '/privacy/'],
+  ['/terms/', 'Terms — Cycle Blocks', '/terms/']
+]) {
   const response = await fetch(new URL(path, liveUrl));
   const html = await response.text();
   check(response.ok, `${path} returned ${response.status}`);
   check(html.includes(`<title>${title}</title>`) && html.includes('<html lang="en">'), `${path} has the wrong document identity`);
+  check(html.includes(`<link rel="canonical" href="${new URL(canonical, liveUrl)}"`), `${path} has the wrong canonical URL`);
+  check(html.includes('property="og:title"') && html.includes('name="twitter:card"') && html.includes('rel="apple-touch-icon"'), `${path} lacks social or touch metadata`);
 }
+
+const missingResponse = await fetch(new URL('/release-gate-missing-page', liveUrl));
+const missingHtml = await missingResponse.text();
+check(missingResponse.status === 404, `Unknown route returned ${missingResponse.status}, expected 404`);
+check(missingHtml.includes('<title>Page not found — Cycle Blocks</title>'), 'Unknown route lacks the designed 404 document');
+
+const socialImage = Buffer.from(await (await fetch(new URL('/assets/cycle-blocks-social.png', liveUrl))).arrayBuffer());
+check(socialImage.readUInt32BE(16) === 1200 && socialImage.readUInt32BE(20) === 630, 'Social image is not 1200 × 630');
 
 const rootResponse = await fetch(liveUrl);
 check(rootResponse.headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), 'CSP is missing frame protection');

@@ -7,6 +7,7 @@ import { makeSheetPlan, normalizeBlock, resolveTimeline, sortFrameNames, timelin
 import type { CycleBlock, PersistedProject, ProjectSettings, SheetPlan, SourceFrame } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
+const isDemo = document.body.dataset.demo === 'true' || location.pathname.replace(/\/+$/, '') === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
 const DEFAULT_SETTINGS: ProjectSettings = { fps: 12, maxTexture: 2048, targetKiB: 1024, padding: 0, powerOfTwo: false };
 let frames: SourceFrame[] = [];
 let blocks: CycleBlock[] = [];
@@ -41,6 +42,7 @@ function projectForStorage(): PersistedProject {
 }
 
 function scheduleSave(): void {
+  if (isDemo) return;
   window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => saveProject(projectForStorage()).catch(() => setStatus('Autosave is unavailable. Export a project backup.', 'warning')), 250);
 }
@@ -72,7 +74,7 @@ function blockMarkup(block: CycleBlock, index: number): string {
       <label>Passes<input data-field="repeats" type="number" min="1" max="120" value="${safe.repeats}"></label>
       <label>Pass offset<input data-field="offset" type="number" min="-${Math.max(0, length - 1)}" max="${Math.max(0, length - 1)}" value="${safe.offset}"></label>
     </div>
-    <p class="block-result">${length} drawings × ${safe.repeats} passes = <strong>${length * safe.repeats} baked frames</strong>. Each new pass starts ${safe.offset === 0 ? 'in the same place' : `${Math.abs(safe.offset)} frame${Math.abs(safe.offset) === 1 ? '' : 's'} ${safe.offset > 0 ? 'later' : 'earlier'}`}.</p>
+    <p class="block-result">${length} source frames × ${safe.repeats} passes = <strong>${length * safe.repeats} baked frames</strong>. Each new pass starts ${safe.offset === 0 ? 'in the same place' : `${Math.abs(safe.offset)} frame${Math.abs(safe.offset) === 1 ? '' : 's'} ${safe.offset > 0 ? 'later' : 'earlier'}`}.</p>
   </section>`;
 }
 
@@ -81,45 +83,50 @@ function render(): void {
   currentFrame = Math.min(currentFrame, Math.max(0, result.length - 1));
   const source = result[currentFrame] ?? 0;
   const frame = frames[source];
-  const preview = frame ? `<img id="preview-image" src="${frame.url}" alt="Preview of source frame ${source + 1}, ${escapeHtml(frame.name)}">` : '<p class="preview-placeholder">Import drawings to start the preview. Nothing leaves this browser.</p>';
+  const preview = frame ? `<img id="preview-image" src="${frame.url}" alt="Preview of source frame ${source + 1}, ${escapeHtml(frame.name)}">` : '<p class="preview-placeholder">Import frames to start the preview. Nothing leaves this browser.</p>';
   const plan = frame ? makeSheetPlan(result.length, frame.width, frame.height, Math.min(settings.maxTexture, studio ? 8192 : 2048), settings.padding, 1, settings.powerOfTwo) : null;
   const estimatedPixels = plan ? plan.width * plan.height : 0;
   const tierLimit = studio ? 120 : 60;
   const tierText = studio ? '<span class="stamp">Studio unlocked</span>' : '<span class="stamp">Free: 60-frame exports</span>';
   const sourceContent = frames.length ? `
-    <div class="source-summary"><span class="metric"><strong>${frames.length}</strong><small>source frames</small></span><span class="metric"><strong>${frames[0].width} × ${frames[0].height}</strong><small>source pixels</small></span></div>
+    <div class="source-summary"><span class="metric"><strong>${frames.length}</strong><small>source frames</small></span><span class="metric"><strong>${frames[0].width} × ${frames[0].height}</strong><small>frame size</small></span></div>
     <ol class="thumbs" aria-label="Source frames">${frames.map((item, index) => `<li class="thumb"><button type="button" data-source="${index}" aria-current="${selectedSource === index}" aria-label="Select source frame ${index + 1}, ${escapeHtml(item.name)}"><img src="${item.url}" alt=""></button><span title="${escapeHtml(item.name)}">${index + 1}. ${escapeHtml(item.name)}</span></li>`).join('')}</ol>
     <div class="button-row"><label class="button file-trigger">Add or replace PNGs<input id="png-input" type="file" accept="image/png,.png" multiple></label><button type="button" data-action="clear">Clear project</button></div>` : `
-    <div class="empty"><picture><source media="(max-width: 700px)" srcset="/assets/loop-print-480.webp"><img src="/assets/loop-print-1200.webp" width="1200" height="800" fetchpriority="high" decoding="async" alt="A risograph collage of blank animation cels curling in a loop across a print bench"></picture><h3>Drop a numbered PNG sequence</h3><p>Select all drawings at once. Names like idle_1.png, idle_2.png, idle_10.png stay in natural numeric order.</p><label class="button button--primary file-trigger">Choose PNG frames<input id="png-input" type="file" accept="image/png,.png" multiple></label></div>`;
+    <div class="empty"><picture><source media="(max-width: 700px)" srcset="/assets/loop-print-480.webp"><img src="/assets/loop-print-1200.webp" width="1200" height="800" fetchpriority="high" decoding="async" alt="A risograph collage of blank animation cels curling in a loop across a print bench"></picture><h3>Drop numbered PNG frames</h3><p>Select all frames at once. Names like idle_1.png, idle_2.png, idle_10.png stay in natural numeric order.</p><label class="button button--primary file-trigger">Choose PNG frames<input id="png-input" type="file" accept="image/png,.png" multiple></label></div>`;
 
+  const demoBanner = isDemo ? `<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><div><button type="button" class="button--quiet" data-action="reset-demo">Reset demo</button><a class="button button--quiet" href="/">Start for real</a></div></aside>` : '';
+  const pricing = `<section id="pricing" class="information-section information-section--pricing" aria-labelledby="pricing-title"><div><p class="eyebrow">One-time purchase</p><h2 id="pricing-title">Studio pricing</h2></div><aside class="pro-box" aria-labelledby="studio-title"><h3 id="studio-title">Studio export <span class="price">$12 once</span></h3><p>${studio ? 'This device can export 120-frame loops and textures up to 8192 px.' : 'Free exports cover 60 frames and 2048 px. Studio covers 120 frames and textures up to 8192 px. There is no subscription.'}</p>${studio ? '<p class="status" data-tone="success">License active.</p>' : `<div class="button-row"><a class="button button--blue" href="${checkoutUrl()}">Buy Studio for $12</a></div><form id="license-form"><label for="license-token">Have a license? Paste it here</label><div class="license-form"><input id="license-token" autocomplete="off" spellcheck="false"><button type="submit">Restore license</button></div></form><p id="license-status" class="status" role="status" aria-live="polite" data-tone="${licenseNotice ? 'warning' : ''}">${escapeHtml(licenseNotice)}</p>`}<p><small>Sociobot/Dodo handles checkout and refunds. <a href="/terms/">Terms</a> · <a href="/privacy/">Privacy</a></small></p></aside></section>`;
   app.innerHTML = `
-    <header class="site-header"><a class="brand" href="/" aria-label="Cycle Blocks home"><img src="/icons/icon.svg" width="38" height="38" alt=""><span>Cycle Blocks</span></a><div class="header-actions"><span class="offline-pill" role="status">Offline — edits still save</span><a class="button" href="#export-panel">Export sheet</a></div></header>
-    <section class="masthead" aria-labelledby="page-title"><div><p class="eyebrow">A small loop press for game animators</p><h1 id="page-title">Repeat drawings. Not the busywork.</h1><p class="masthead__lede">Arrange reusable cycle blocks, preview their offsets, then bake only the frames your game needs.</p></div><div class="local-note"><strong>Your art stays here.</strong><p>PNG processing and autosave happen locally—even offline after the first visit.</p></div></section>
-    <main id="workspace" class="workspace"><div class="workspace-grid">
+    <header class="site-header"><a class="brand" href="/" aria-label="Cycle Blocks home"><img src="/icons/icon.svg" width="38" height="38" alt=""><span>Cycle Blocks</span></a><nav class="site-nav" aria-label="Main navigation"><a href="/demo/">Demo</a><a href="/privacy/">Privacy</a></nav><div class="header-actions"><span class="offline-pill" role="status">Offline — edits still save</span><a class="button" href="#export-panel">Export sheet</a></div></header>
+    ${demoBanner}
+    <main id="main"><section class="masthead${isDemo ? ' masthead--demo' : ''}" aria-labelledby="page-title"><div><p class="eyebrow">${isDemo ? 'Sample project' : 'Cycle Blocks for 2D game animation'}</p><h1 id="page-title">${isDemo ? 'Test an offset sprite loop' : 'Build offset sprite loops from PNG frames'}</h1><p class="masthead__lede">${isDemo ? 'Change the firefly timing, preview the loop, and export the prepared sheet.' : 'For 2D game animators who need repeated motion without copying source frames.'}</p>${isDemo ? '' : '<div class="hero-action"><a class="button button--primary" href="/demo/">Try it with sample data</a><span>Loads four original frames and a ready 12-frame loop.</span></div>'}</div><ul class="plain-facts" aria-label="Product facts"><li>Your artwork stays in this browser.</li><li>Works offline after the first visit.</li><li>Free for 60 frames. Studio is $12 once.</li></ul></section>
+    <section id="workspace" class="workspace" aria-label="Sprite loop workspace"><div class="workspace-grid">
       <div class="column">
-        <section id="source-panel" class="panel panel--blue drop-zone" aria-labelledby="source-title"><div class="panel-head"><div><h2 id="source-title">Source drawings</h2><p class="help">PNG only · same canvas size · sorted by filename</p></div><span class="step" aria-hidden="true">1</span></div>${sourceContent}<p id="import-status" class="status" role="status" aria-live="polite"></p></section>
+        <section id="source-panel" class="panel panel--blue drop-zone" aria-labelledby="source-title"><div class="panel-head"><div><h2 id="source-title">Source frames</h2><p class="help">PNG only · same canvas size · sorted by filename</p></div><span class="step" aria-hidden="true">1</span></div>${sourceContent}<p id="import-status" class="status" role="status" aria-live="polite"></p></section>
         <section class="panel" aria-labelledby="recipe-title"><div class="panel-head"><div><h2 id="recipe-title">Cycle recipe</h2><p class="help">Offset rotates the start drawing on each pass without creating copies.</p></div><span class="step" aria-hidden="true">2</span></div>
           ${frames.length ? `<div class="block-list">${blocks.map(blockMarkup).join('')}</div><div class="button-row"><button type="button" data-action="add-block">+ Add another block</button><span class="metric"><strong>${result.length}</strong><small>baked frames · ${timelineDuration(result.length, settings.fps).toFixed(2)} sec</small></span></div>` : '<p class="help">Your block controls will appear after import.</p>'}
         </section>
         <section class="panel" aria-labelledby="project-title"><div class="panel-head"><div><h2 id="project-title">Project backup</h2><p class="help">Save or restore the full recipe and source PNGs as one local file.</p></div></div><label>Project name<input id="project-name" value="${escapeHtml(projectName)}" maxlength="80"></label><div class="button-row"><button type="button" data-action="save-project" ${frames.length ? '' : 'disabled'}>Download project</button><label class="button file-trigger">Restore project<input id="project-input" type="file" accept="application/json,.cycleblocks.json"></label></div></section>
       </div>
       <div class="column">
-        <section class="panel panel--red" aria-labelledby="preview-title"><div class="panel-head"><div><h2 id="preview-title">Loop proof</h2><p class="help">Space plays or pauses. Left and right arrows step frames.</p></div><span class="step" aria-hidden="true">3</span></div><div class="preview-stage" tabindex="0" aria-label="Animation preview. Use Space to play and arrow keys to step.">${preview}</div>
+        <section class="panel panel--red" aria-labelledby="preview-title"><div class="panel-head"><div><h2 id="preview-title">Loop preview</h2><p class="help">Space plays or pauses. Left and right arrows step frames.</p></div><span class="step" aria-hidden="true">3</span></div><div class="preview-stage" tabindex="0" aria-label="Animation preview. Use Space to play and arrow keys to step.">${preview}</div>
           <div class="preview-controls"><button class="transport" type="button" data-action="play" aria-label="${playing ? 'Pause' : 'Play'} animation" ${result.length ? '' : 'disabled'}>${playing ? 'Ⅱ' : '▶'}</button><input id="scrubber" class="scrubber" type="range" min="0" max="${Math.max(0,result.length - 1)}" value="${currentFrame}" aria-label="Preview frame" ${result.length ? '' : 'disabled'}><span id="frame-readout" class="frame-readout">${result.length ? `${currentFrame + 1} / ${result.length}` : '0 / 0'}</span><span class="shortcut">Source ${result.length ? source + 1 : '—'}</span></div>
           ${result.length ? `<ol class="result-strip" tabindex="0" aria-label="Resolved output frames. Use arrow keys to scroll the strip.">${result.slice(0, 180).map((item,index) => `<li class="result-frame${index === currentFrame ? ' is-current' : ''}" title="Output ${index + 1} uses source ${item + 1}">${item + 1}</li>`).join('')}</ol>` : ''}
         </section>
-        <section id="export-panel" class="panel panel--red" aria-labelledby="export-title"><div class="panel-head"><div><h2 id="export-title">Constrained export</h2><p class="help">The baker scales down only if needed to meet both limits.</p></div><span class="step" aria-hidden="true">4</span></div>
+        <section id="export-panel" class="panel panel--red" aria-labelledby="export-title"><div class="panel-head"><div><h2 id="export-title">Sprite-sheet export</h2><p class="help">The baker scales down only if needed to meet both limits.</p></div><span class="step" aria-hidden="true">4</span></div>
           <div class="settings"><label>Playback FPS<input id="fps" type="number" min="1" max="60" value="${settings.fps}"></label><label>Texture limit<select id="texture-limit"><option value="1024" ${settings.maxTexture === 1024 ? 'selected' : ''}>1024 px</option><option value="2048" ${settings.maxTexture === 2048 ? 'selected' : ''}>2048 px</option><option value="4096" ${settings.maxTexture === 4096 ? 'selected' : ''} ${studio ? '' : 'disabled'}>4096 px · Studio</option><option value="8192" ${settings.maxTexture === 8192 ? 'selected' : ''} ${studio ? '' : 'disabled'}>8192 px · Studio</option></select></label><label>PNG budget (KiB)<input id="budget" type="number" min="64" max="524288" value="${settings.targetKiB}"></label><label>Padding (px)<input id="padding" type="number" min="0" max="64" value="${settings.padding}"></label><label class="check"><input id="power-two" type="checkbox" ${settings.powerOfTwo ? 'checked' : ''}> Power-of-two sheet</label></div>
           <div class="export-summary"><span class="metric"><strong>${plan ? `${plan.width} × ${plan.height}` : 'Needs fit'}</strong><small>full-size layout</small></span><span class="metric"><strong>${result.length} / ${tierLimit}</strong><small>${studio ? 'Studio' : 'free'} frame limit</small></span><span class="metric"><strong>${estimatedPixels ? `${(estimatedPixels / 1_000_000).toFixed(1)} MP` : '—'}</strong><small>canvas area</small></span>${tierText}</div>
           <div class="budget-meter" ${lastBake ? '' : 'hidden'}><div class="budget-bar" aria-hidden="true"><span style="--meter:${lastBake ? Math.min(100,lastBake.blob.size / (settings.targetKiB * 1024) * 100) : 0}%"></span></div></div>
           <p id="export-status" class="status" role="status" aria-live="polite" data-tone="${statusTone}">${escapeHtml(status)}</p>
           <div class="button-row"><button class="button--primary" type="button" data-action="bake" ${result.length ? '' : 'disabled'}>Bake to budget</button><button type="button" data-action="download-png" ${lastBake ? '' : 'disabled'}>Download PNG</button><button type="button" data-action="download-json" ${lastBake ? '' : 'disabled'}>Download JSON</button></div>
-          <aside class="pro-box" aria-labelledby="studio-title"><h3 id="studio-title">Studio export <span class="price">$12 once</span></h3><p>${studio ? 'This device is unlocked for 120-frame and 8192 px exports.' : 'Free exports cover 60 frames and 2048 px. Studio unlocks 120-frame loops and textures up to 8192 px. No subscription.'}</p>${studio ? '<p class="status" data-tone="success">License active.</p>' : `<div class="button-row"><a class="button button--blue" href="${checkoutUrl()}">Buy Studio</a></div><form id="license-form"><label for="license-token">Have a license? Paste it here</label><div class="license-form"><input id="license-token" autocomplete="off" spellcheck="false"><button type="submit">Restore</button></div></form><p id="license-status" class="status" role="status" aria-live="polite" data-tone="${licenseNotice ? 'warning' : ''}">${escapeHtml(licenseNotice)}</p>`}<p><small>Checkout and refunds are handled by Sociobot/Dodo, the merchant of record. <a href="/terms/">Terms</a> · <a href="/privacy/">Privacy</a></small></p></aside>
         </section>
       </div>
-    </div></main>
-    <footer class="site-footer"><p>Cycle Blocks · Local-first by design · Empty-state art generated for this product</p><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav></footer>
-    <div id="update-toast" class="toast" hidden><span>A fresh press is ready.</span><button type="button" data-action="update">Update now</button></div>`;
+    </div></section>
+    <section class="information-section" aria-labelledby="how-title"><div><p class="eyebrow">Three steps</p><h2 id="how-title">How it works</h2></div><ol class="how-list"><li><strong>Import PNG frames.</strong><span>Select drawings with one canvas size.</span></li><li><strong>Set repeats and offsets.</strong><span>Preview every resolved frame before export.</span></li><li><strong>Bake the sprite sheet.</strong><span>Download the PNG and its JSON frame map.</span></li></ol></section>
+    <section class="information-section" aria-labelledby="limits-title"><div><p class="eyebrow">Scope and privacy</p><h2 id="limits-title">What Cycle Blocks does not do</h2></div><div class="information-copy"><p>It does not draw frames or connect to a game engine.</p><p>It does not upload artwork or add trackers.</p><p>Use project backups when you need a portable copy.</p></div></section>
+    ${pricing}</main>
+    <footer class="site-footer"><p>Build offset sprite loops from PNG frames.</p><nav aria-label="Legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></nav><p>Built by Param Factory · Version 1.1.0 · Original generated empty-state art</p></footer>
+    <div id="update-toast" class="toast" hidden><span>An app update is ready.</span><button type="button" data-action="update">Update now</button></div>`;
   bindEvents();
   document.body.classList.toggle('is-offline', !navigator.onLine);
 }
@@ -157,7 +164,7 @@ async function importPngs(list: FileList | null): Promise<void> {
   try {
     const loaded = sortFrameNames(await Promise.all(pngs.map(fileToFrame)));
     const { width, height } = loaded[0];
-    if (width * height > 16_777_216) { loaded.forEach((frame) => URL.revokeObjectURL(frame.url)); throw new Error('Each source drawing must be 16 megapixels or smaller.'); }
+    if (width * height > 16_777_216) { loaded.forEach((frame) => URL.revokeObjectURL(frame.url)); throw new Error('Each source frame must be 16 megapixels or smaller.'); }
     if (loaded.some((frame) => frame.width !== width || frame.height !== height)) { loaded.forEach((frame) => URL.revokeObjectURL(frame.url)); throw new Error('All source PNGs need the same canvas dimensions. Resize the odd frame and import again.'); }
     frames.forEach((frame) => URL.revokeObjectURL(frame.url));
     frames = loaded;
@@ -209,6 +216,7 @@ function handleAction(event: Event): void {
     case 'download-png': if (lastBake) downloadBlob(lastBake.blob, `${cleanName(projectName)}.png`); break;
     case 'download-json': if (lastBake) downloadBlob(new Blob([JSON.stringify(lastBake.metadata, null, 2)], { type: 'application/json' }), `${cleanName(projectName)}.json`); break;
     case 'save-project': void downloadProject(); break;
+    case 'reset-demo': void loadDemoProject(); break;
     case 'update': void applyUpdate(); break;
   }
 }
@@ -271,6 +279,7 @@ async function runBake(): Promise<void> {
 }
 
 async function clearAll(): Promise<void> {
+  if (isDemo) { await loadDemoProject(); return; }
   if (!confirm(`Clear ${frames.length} source frame${frames.length === 1 ? '' : 's'} and the current recipe from this browser? Download a project backup first if you need it.`)) return;
   stopPlayback(); frames.forEach((frame) => URL.revokeObjectURL(frame.url)); frames = []; blocks = []; lastBake = null; settings = { ...DEFAULT_SETTINGS }; projectName = 'my-cycle'; status = ''; await clearProject(); render();
 }
@@ -301,7 +310,7 @@ async function restoreLicense(event: SubmitEvent): Promise<void> {
   if (!input.value.trim()) { region.textContent = 'Paste the license token from your receipt.'; region.dataset.tone = 'danger'; return; }
   storeLicense(input.value);
   region.textContent = 'Checking the license…';
-  try { const result = await verifyLicense(true); if (!result.valid) throw new Error(`License not active (${result.reason.replace('_',' ')}).`); studio = true; licenseNotice = ''; render(); } catch (error) { studio = false; region.textContent = error instanceof Error ? error.message : 'Could not check that license.'; region.dataset.tone = 'danger'; }
+  try { const result = await verifyLicense(); if (!result.valid) throw new Error(`License not active (${result.reason.replace('_',' ')}).`); studio = true; licenseNotice = ''; render(); } catch (error) { studio = false; region.textContent = error instanceof Error ? error.message : 'Could not check that license.'; region.dataset.tone = 'danger'; }
 }
 
 async function restoreAutosave(): Promise<void> {
@@ -310,6 +319,58 @@ async function restoreAutosave(): Promise<void> {
     if (!saved?.frames.length) return;
     frames = saved.frames.map((frame) => ({ ...frame, url: URL.createObjectURL(frame.blob) })); blocks = saved.blocks.map((block) => normalizeBlock(block, frames.length)); settings = saved.settings; projectName = saved.name; render(); setImportStatus(`Recovered ${frames.length} locally saved frames.`);
   } catch { setStatus('Local recovery was unavailable. You can still import PNGs.', 'warning'); }
+}
+
+async function makeDemoFile(name: string, index: number): Promise<File> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 96;
+  canvas.height = 96;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('The sample could not be drawn in this browser.');
+  const lift = [8, 2, 6, 12][index];
+  context.globalAlpha = .2;
+  context.fillStyle = '#1c1a18';
+  context.beginPath();
+  context.ellipse(48, 82, 21 - index, 5, 0, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+  context.fillStyle = '#f4c542';
+  context.beginPath();
+  context.arc(48, 48 - lift, 17, 0, Math.PI * 2);
+  context.fill();
+  context.lineWidth = 4;
+  context.strokeStyle = '#1c1a18';
+  context.stroke();
+  context.fillStyle = '#1558d6';
+  context.beginPath();
+  context.ellipse(29, 46 - lift, 16, 8 + index, -.35, 0, Math.PI * 2);
+  context.ellipse(67, 46 - lift, 16, 11 - index, .35, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  context.fillStyle = '#d53a36';
+  context.beginPath();
+  context.arc(43, 44 - lift, 3, 0, Math.PI * 2);
+  context.arc(53, 44 - lift, 3, 0, Math.PI * 2);
+  context.fill();
+  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('The sample PNG could not be created.')), 'image/png'));
+  return new File([blob], name, { type: 'image/png' });
+}
+
+async function loadDemoProject(): Promise<void> {
+  stopPlayback();
+  frames.forEach((frame) => URL.revokeObjectURL(frame.url));
+  const names = ['firefly_1.png', 'firefly_2.png', 'firefly_3.png', 'firefly_10.png'];
+  frames = sortFrameNames(await Promise.all(names.map((name, index) => makeDemoFile(name, index))).then((files) => Promise.all(files.map(fileToFrame))));
+  blocks = [{ id: makeId(), start: 0, end: 3, repeats: 3, offset: 1 }];
+  settings = { fps: 12, maxTexture: 1024, targetKiB: 64, padding: 4, powerOfTwo: false };
+  projectName = 'firefly-hover';
+  currentFrame = 0;
+  selectedSource = 0;
+  lastBake = null;
+  status = 'Sample reset. Bake again if you change its settings.';
+  statusTone = '';
+  render();
+  await runBake();
 }
 
 let waitingWorker: ServiceWorker | null = null;
@@ -335,7 +396,13 @@ window.addEventListener('keydown', (event) => {
   if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); stopPlayback(); currentFrame += event.key === 'ArrowRight' ? 1 : -1; updatePreview(); }
 });
 
-captureReturnedLicense(); studio = hasOptimisticUnlock(); render();
-void restoreAutosave();
-void verifyLicense().then((result) => { if (!result.valid && hasStoredLicense()) licenseNotice = 'License no longer active. You can restore another token or buy again.'; if (result.valid !== studio || licenseNotice) { studio = result.valid; if (!studio && settings.maxTexture > 2048) settings.maxTexture = 2048; render(); } }).catch(() => { /* cached access remains during network failure */ });
+if (!isDemo) captureReturnedLicense();
+studio = isDemo ? false : hasOptimisticUnlock();
+render();
+if (isDemo) {
+  void loadDemoProject();
+} else {
+  void restoreAutosave();
+  void verifyLicense().then((result) => { if (!result.valid && hasStoredLicense()) licenseNotice = 'License no longer active. You can restore another token or buy again.'; if (result.valid !== studio || licenseNotice) { studio = result.valid; if (!studio && settings.maxTexture > 2048) settings.maxTexture = 2048; render(); } }).catch(() => { /* cached access remains during network failure */ });
+}
 void registerServiceWorker();

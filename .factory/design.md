@@ -40,4 +40,6 @@ The hero/empty-state image is an original generated raster, shown only before so
 - Generated with the factory Azure image deployment (`factory-image`) on 2026-08-28.
 - Original prompt and generation metadata live beside the source in `assets/src/loop-print.json`.
 - The selected image is reviewed for text artifacts, brands, unintended symbols, and visual seams, then exported as responsive WebP assets under 300 KB. Generated imagery is disclosed in the footer.
+- The 1200 × 630 social preview is a centered crop of that same original image. The 180 px touch icon is resized from the hand-authored product icon.
+- The demo firefly frames are original procedural canvas drawings made by the app. They use only the product palette and contain no borrowed artwork.
 - Interface icons (upload, play, pause, export, trash) are original inline SVG paths or typographic symbols and are not separately licensed.

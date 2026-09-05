@@ -1,0 +1,149 @@
+[
+  {
+    "id": "natural-frame-order",
+    "claim": "Numbered PNG frames stay in numeric filename order.",
+    "where": "Source frames, README",
+    "test": "npx playwright test --grep \"@claim:natural-frame-order\"",
+    "sandbox": "/demo/; assert the shipped 1, 2, 3, 10 sample order"
+  },
+  {
+    "id": "png-import-rules",
+    "claim": "Imports accept PNG files with one shared canvas size and keep the active project after a rejected import.",
+    "where": "Source frames",
+    "test": "npx playwright test --grep \"@claim:png-import-rules\"",
+    "sandbox": "/demo/; submit a JPEG and mismatched PNG canvases, then check the sample remains"
+  },
+  {
+    "id": "repeat-without-copies",
+    "claim": "A cycle block repeats source frames without adding source copies.",
+    "where": "Cycle recipe, README",
+    "test": "npx playwright test --grep \"@claim:repeat-without-copies\"",
+    "sandbox": "/demo/; change repeats and compare source and output counts"
+  },
+  {
+    "id": "pass-offset",
+    "claim": "A pass offset rotates the start frame on each pass.",
+    "where": "Cycle recipe, README",
+    "test": "npx playwright test --grep \"@claim:pass-offset\"",
+    "sandbox": "/demo/; assert the complete resolved 12-frame sequence"
+  },
+  {
+    "id": "preview-and-step",
+    "claim": "The resolved loop can be played and stepped before export.",
+    "where": "Loop proof, README",
+    "test": "npx playwright test --grep \"@claim:preview-and-step\"",
+    "sandbox": "/demo/; step by keyboard and start playback"
+  },
+  {
+    "id": "texture-limit",
+    "claim": "The exported sheet stays within the selected texture limit.",
+    "where": "Constrained export, README",
+    "test": "npx playwright test --grep \"@claim:texture-limit\"",
+    "sandbox": "/demo/; inspect the downloaded JSON sheet dimensions"
+  },
+  {
+    "id": "png-budget",
+    "claim": "The exported PNG stays within the selected file-size budget or reports that it cannot fit.",
+    "where": "Constrained export, README",
+    "test": "npx playwright test --grep \"@claim:png-budget\"",
+    "sandbox": "/demo/; measure the downloaded PNG against 64 KiB"
+  },
+  {
+    "id": "transparent-png",
+    "claim": "Export produces a PNG with transparency.",
+    "where": "How it works, README",
+    "test": "npx playwright test --grep \"@claim:transparent-png\"",
+    "sandbox": "/demo/; decode the download and inspect an alpha pixel"
+  },
+  {
+    "id": "json-frame-map",
+    "claim": "Export produces a JSON frame map with coordinates and timing.",
+    "where": "How it works, README",
+    "test": "npx playwright test --grep \"@claim:json-frame-map\"",
+    "sandbox": "/demo/; parse and validate the downloaded frame map"
+  },
+  {
+    "id": "local-artwork-processing",
+    "claim": "Artwork processing stays in the browser.",
+    "where": "First screen, Privacy, README",
+    "test": "npx playwright test --grep \"@claim:local-artwork-processing\"",
+    "sandbox": "/demo/; monitor the full edit and bake flow for upload requests"
+  },
+  {
+    "id": "browser-autosave",
+    "claim": "The current real project is stored in IndexedDB and survives a refresh.",
+    "where": "Privacy, README",
+    "test": "npx playwright test --grep \"@claim:browser-autosave\"",
+    "sandbox": "start at /demo/, enter a fresh real workspace, import, reload, and assert recovery"
+  },
+  {
+    "id": "offline-reload",
+    "claim": "Cycle Blocks works offline after the first visit.",
+    "where": "First screen, README",
+    "test": "npx playwright test --grep \"@claim:offline-reload\"",
+    "sandbox": "new browser context at /demo/; activate worker, go offline, reload"
+  },
+  {
+    "id": "project-backup",
+    "claim": "A project backup contains and restores the recipe and original PNG bytes.",
+    "where": "Project backup, README",
+    "test": "npx playwright test --grep \"@claim:project-backup\"",
+    "sandbox": "/demo/; download, inspect, reset, and restore the project"
+  },
+  {
+    "id": "free-frame-limit",
+    "claim": "The free tier exports up to 60 baked frames.",
+    "where": "First screen, export summary, Terms, README",
+    "test": "npx playwright test --grep \"@claim:free-frame-limit\"",
+    "sandbox": "/demo/; export 60 frames and assert 64 are rejected"
+  },
+  {
+    "id": "free-texture-limit",
+    "claim": "The free tier supports textures up to 2048 px.",
+    "where": "Studio pricing, Terms, README",
+    "test": "npx playwright test --grep \"@claim:free-texture-limit\"",
+    "sandbox": "/demo/; select 2048, export, and inspect dimensions"
+  },
+  {
+    "id": "studio-export-limits",
+    "claim": "A valid Studio license supports 120 frames and 8192 px textures.",
+    "where": "Studio pricing, Terms, README",
+    "test": "npx playwright test --grep \"@claim:studio-export-limits\"",
+    "sandbox": "start at /demo/; use a recorded valid-license response and export 120 frames"
+  },
+  {
+    "id": "studio-price",
+    "claim": "Studio is offered for $12 once with no subscription; Sociobot/Dodo handles checkout and refund requests.",
+    "where": "First screen, Studio pricing, Terms, README",
+    "test": "npx playwright test --grep \"@claim:studio-price\"",
+    "sandbox": "/demo/; check the price disclosure and exercise the checkout navigation"
+  },
+  {
+    "id": "license-check-cache",
+    "claim": "A rejected or revoked Studio license stays locked and its result is cached for one day.",
+    "where": "Privacy, Terms, license notice",
+    "test": "npx playwright test --grep \"@claim:license-check-cache\"",
+    "sandbox": "start at /demo/; use a recorded revoked response, retry, and count one provider request"
+  },
+  {
+    "id": "no-trackers",
+    "claim": "The app loads no analytics, trackers, third-party scripts, or CDN fonts.",
+    "where": "Privacy scope, Privacy, README",
+    "test": "npx playwright test --grep \"@claim:no-trackers\"",
+    "sandbox": "/demo/; record every request through load and export"
+  },
+  {
+    "id": "source-memory-limit",
+    "claim": "Each source frame is limited to 16 megapixels.",
+    "where": "README",
+    "test": "npx playwright test --grep \"@claim:source-memory-limit\"",
+    "sandbox": "/demo/; reject a 4097 by 4097 PNG and retain the sample"
+  },
+  {
+    "id": "demo-isolation",
+    "claim": "Demo edits and resets do not change the saved real project.",
+    "where": "Demo banner, README",
+    "test": "npx playwright test --grep \"@claim:demo-isolation\"",
+    "sandbox": "fresh context; save real data, edit and reset /demo/, return and compare"
+  }
+]

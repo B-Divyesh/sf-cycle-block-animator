@@ -4,7 +4,8 @@ const TOKEN_KEY = `sb_license:${PRODUCT_SLUG}`;
 const VERDICT_KEY = `${TOKEN_KEY}:verdict`;
 const DAY = 86_400_000;
 
-interface CachedVerdict { valid: boolean; checkedAt: number }
+interface CachedVerdict { valid: boolean; reason: string; checkedAt: number; token: string }
+let pendingVerification: Promise<{ valid: boolean; reason: string }> | null = null;
 
 export function checkoutUrl(): string {
   return `${BILLING_BASE}/products/${PRODUCT_SLUG}/checkout`;
@@ -14,15 +15,15 @@ export function captureReturnedLicense(): void {
   const url = new URL(location.href);
   const token = url.searchParams.get('license');
   if (!token) return;
-  localStorage.setItem(TOKEN_KEY, token.trim());
-  localStorage.removeItem(VERDICT_KEY);
+  storeLicense(token);
   url.searchParams.delete('license');
   history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
 }
 
 export function storeLicense(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token.trim());
-  localStorage.removeItem(VERDICT_KEY);
+  const cleanToken = token.trim();
+  if (localStorage.getItem(TOKEN_KEY) !== cleanToken) localStorage.removeItem(VERDICT_KEY);
+  localStorage.setItem(TOKEN_KEY, cleanToken);
 }
 
 export function hasStoredLicense(): boolean {
@@ -34,22 +35,24 @@ export function hasOptimisticUnlock(): boolean {
   if (!token) return false;
   try {
     const cached = JSON.parse(localStorage.getItem(VERDICT_KEY) ?? '') as CachedVerdict;
-    return cached.valid;
-  } catch { return true; }
+    return cached.token === token && cached.valid;
+  } catch { return false; }
 }
 
-export async function verifyLicense(force = false): Promise<{ valid: boolean; reason: string }> {
+export async function verifyLicense(): Promise<{ valid: boolean; reason: string }> {
   const token = localStorage.getItem(TOKEN_KEY);
   if (!token) return { valid: false, reason: 'missing' };
-  if (!force) {
-    try {
-      const cached = JSON.parse(localStorage.getItem(VERDICT_KEY) ?? '') as CachedVerdict;
-      if (Date.now() - cached.checkedAt < DAY) return { valid: cached.valid, reason: 'cached' };
-    } catch { /* verify below */ }
-  }
-  const response = await fetch(`${BILLING_BASE}/products/${PRODUCT_SLUG}/verify?license=${encodeURIComponent(token)}`);
-  if (!response.ok) throw new Error('License service is unavailable');
-  const data = await response.json() as { valid: boolean; reason: string };
-  localStorage.setItem(VERDICT_KEY, JSON.stringify({ valid: data.valid, checkedAt: Date.now() }));
-  return data;
+  try {
+    const cached = JSON.parse(localStorage.getItem(VERDICT_KEY) ?? '') as CachedVerdict;
+    if (cached.token === token && Date.now() - cached.checkedAt < DAY) return { valid: cached.valid, reason: cached.reason };
+  } catch { /* verify below */ }
+  if (pendingVerification) return pendingVerification;
+  pendingVerification = (async () => {
+    const response = await fetch(`${BILLING_BASE}/products/${PRODUCT_SLUG}/verify?license=${encodeURIComponent(token)}`);
+    if (!response.ok) throw new Error(response.status === 429 ? 'Too many license checks. Try again later.' : 'License service is unavailable.');
+    const data = await response.json() as { valid: boolean; reason: string };
+    localStorage.setItem(VERDICT_KEY, JSON.stringify({ valid: data.valid, reason: data.reason, checkedAt: Date.now(), token }));
+    return data;
+  })();
+  try { return await pendingVerification; } finally { pendingVerification = null; }
 }

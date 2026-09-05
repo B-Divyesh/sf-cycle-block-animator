@@ -1,0 +1,1 @@
+Build offset PNG sprite loops and export size-limited sheets with JSON.

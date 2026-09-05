@@ -1,6 +1,6 @@
 {
   "name": "cycle-block-animator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "build": "vite build && node scripts/build-sw.mjs",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:claims": "playwright test tests/e2e/claims.spec.ts",
     "test:e2e": "playwright test",
     "test:live": "node scripts/verify-live.mjs",
     "lint": "eslint .",

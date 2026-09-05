@@ -11,6 +11,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         app: resolve(root, 'index.html'),
+        demo: resolve(root, 'demo/index.html'),
+        notFound: resolve(root, '404.html'),
         privacy: resolve(root, 'privacy/index.html'),
         terms: resolve(root, 'terms/index.html')
       }

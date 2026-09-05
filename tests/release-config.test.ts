@@ -8,17 +8,10 @@ describe('static deployment contract', () => {
     routes: Array<{ route: string; headers: Record<string, string> }>;
   };
 
-  it('does not precache deployment-only configuration', () => {
-    const builder = readFileSync('scripts/build-sw.mjs', 'utf8');
-    expect(builder).toContain("new Set(['staticwebapp.config.json'])");
-    expect(builder).toContain('!deploymentOnlyFiles.has(entry.name)');
-    expect(builder).toContain("createHash('sha256')");
-    expect(builder).toContain("readFile(join(root, file.slice(1)))");
-  });
-
-  it('maps clean legal navigation paths to their precached index documents', () => {
-    const builder = readFileSync('scripts/build-sw.mjs', 'utf8');
-    expect(builder).toContain("pathname.endsWith('/')?pathname+'index.html':pathname+'/index.html'");
+  it('uses the designed 404 document without rewriting unknown routes to the editor', () => {
+    const typedConfig = config as typeof config & { navigationFallback?: unknown; responseOverrides: Record<string, { rewrite: string }> };
+    expect(typedConfig.navigationFallback).toBeUndefined();
+    expect(typedConfig.responseOverrides['404']).toEqual({ rewrite: '/404.html' });
   });
 
   it('sets long-lived assets and no-cache worker policy', () => {

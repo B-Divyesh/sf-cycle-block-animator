@@ -1,3 +1,37 @@
+# Cycle Blocks review 1 handoff — FAIL
+
+Reviewed 2026-09-05 UTC against implementation
+`1b4d7718d12dcdb28a9f32a55f1c6ea1b55bdea7`; the report/documentation commit is
+`2ba9aaf43e6313e67a23d33eab0afdfc2fbe352f`. The live app exactly matches the
+implementation artifact.
+
+**FAIL — do not promote.** Six findings remain: no one-click isolated sample
+sandbox, no `.factory/claims.json` or claim-tagged test commands (18 public claims
+untested), the previously recorded billing verification rate-limit blocker is
+unresolved, first-screen wording/action misses the plain-words contract, unknown
+routes return the workspace with HTTP 200, and required canonical/social metadata
+is missing. See [review 1](review-1.md) for all evidence and prior-finding
+dispositions.
+
+The full clean gate passes:
+
+```sh
+npm ci
+npm test
+npm run typecheck
+npm run lint
+npm run build
+npm run test:e2e
+npm run test:live
+```
+
+Live manual checks confirmed normal import/export, invalid-input recovery,
+60/61-frame boundary behavior, offline root/legal reload, keyboard focus, mobile
+layout, reduced motion, local-only requests, and zero serious/critical axe issues.
+No product code was changed during this review.
+
+---
+
 # Cycle Blocks verification 3 handoff — FAIL
 
 Verified 2026-08-28 UTC against candidate

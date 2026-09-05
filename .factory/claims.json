@@ -95,7 +95,7 @@
     "claim": "The free tier exports up to 60 baked frames.",
     "where": "First screen, export summary, Terms, README",
     "test": "npx playwright test --grep \"@claim:free-frame-limit\"",
-    "sandbox": "/demo/; export 60 frames and assert 64 are rejected"
+    "sandbox": "/demo/; import one frame, export 60 frames, and assert 61 are rejected"
   },
   {
     "id": "free-texture-limit",
@@ -137,7 +137,7 @@
     "claim": "Each source frame is limited to 16 megapixels.",
     "where": "README",
     "test": "npx playwright test --grep \"@claim:source-memory-limit\"",
-    "sandbox": "/demo/; reject a 4097 by 4097 PNG and retain the sample"
+    "sandbox": "/demo/; accept 4096 by 4096, reject 4097 by 4097, and retain the accepted project"
   },
   {
     "id": "demo-isolation",

@@ -182,18 +182,20 @@ test('@claim:project-backup downloads and restores the recipe with original PNG 
   await expect(page.locator('.result-frame')).toHaveCount(8);
 });
 
-test('@claim:free-frame-limit exports 60 frames and rejects 64', async ({ page }) => {
+test('@claim:free-frame-limit exports 60 frames and rejects 61', async ({ page }) => {
   await openDemo(page);
+  await page.locator('#png-input').setInputFiles([{ name: 'limit_1.png', mimeType: 'image/png', buffer: png }]);
+  await expect(page.getByText('1 PNG frame loaded')).toBeVisible();
   const repeats = page.locator('[data-field="repeats"]');
-  await repeats.fill('15');
+  await repeats.fill('60');
   await repeats.blur();
   await expect(page.locator('.result-frame')).toHaveCount(60);
   await page.getByRole('button', { name: 'Bake to budget' }).click();
   await expect(page.locator('#export-status')).toContainText('Ready:');
-  await repeats.fill('16');
+  await repeats.fill('61');
   await repeats.blur();
   await page.getByRole('button', { name: 'Bake to budget' }).click();
-  await expect(page.locator('#export-status')).toContainText('This recipe has 64 frames. Reduce it to 60');
+  await expect(page.locator('#export-status')).toContainText('This recipe has 61 frames. Reduce it to 60');
 });
 
 test('@claim:free-texture-limit offers and enforces a 2048 px free limit', async ({ page }) => {
@@ -263,20 +265,24 @@ test('@claim:no-trackers loads and exports without analytics, CDN, or third-part
 
 test('@claim:source-memory-limit rejects a source above 16 megapixels and keeps the demo project', async ({ page }) => {
   await openDemo(page);
-  await page.evaluate(async () => {
+  const importCanvas = (side: number, name: string) => page.evaluate(async ({ side, name }) => {
     const canvas = document.createElement('canvas');
-    canvas.width = 4097;
-    canvas.height = 4097;
+    canvas.width = side;
+    canvas.height = side;
     const blob = await new Promise<Blob>((resolve) => canvas.toBlob((value) => resolve(value!), 'image/png'));
     const transfer = new DataTransfer();
-    transfer.items.add(new File([blob], 'too-large.png', { type: 'image/png' }));
+    transfer.items.add(new File([blob], name, { type: 'image/png' }));
     const input = document.querySelector<HTMLInputElement>('#png-input')!;
     input.files = transfer.files;
     input.dispatchEvent(new Event('change', { bubbles: true }));
-  });
+  }, { side, name });
+  await importCanvas(4096, 'limit_4096.png');
+  await expect(page.getByText('1 PNG frame loaded')).toBeVisible();
+  await expect(page.locator('.thumb span')).toContainText('limit_4096.png');
+  await importCanvas(4097, 'too-large.png');
   await expect(page.locator('#import-status')).toContainText('16 megapixels or smaller');
-  await expect(page.locator('.thumb')).toHaveCount(4);
-  await expect(page.locator('.thumb span').first()).toContainText('firefly_1.png');
+  await expect(page.locator('.thumb')).toHaveCount(1);
+  await expect(page.locator('.thumb span')).toContainText('limit_4096.png');
 });
 
 test('@claim:demo-isolation resets sample edits and leaves the saved real project unchanged', async ({ page }) => {

@@ -127,6 +127,26 @@ test('rejects mismatched PNG canvases without losing the current recipe', async 
   await expect(page.locator('.thumb')).toHaveCount(1);
 });
 
+test('recovers from corrupt PNG and invalid backup inputs', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#png-input').setInputFiles([{ name: 'good_1.png', mimeType: 'image/png', buffer: png }]);
+  await expect(page.getByText('1 PNG frame loaded')).toBeVisible();
+  await page.locator('#png-input').setInputFiles([{ name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('not-png-data') }]);
+  await expect(page.locator('#import-status')).toHaveAttribute('data-tone', 'danger');
+  await expect(page.locator('.thumb span')).toContainText('good_1.png');
+  await page.locator('#project-input').setInputFiles([{ name: 'broken.cycleblocks.json', mimeType: 'application/json', buffer: Buffer.from('{"version":0}') }]);
+  await expect(page.locator('#import-status')).toContainText('not a Cycle Blocks v1 project');
+  await expect(page.locator('.thumb span')).toContainText('good_1.png');
+});
+
+test('shows a useful retry message when license verification is rate limited', async ({ page }) => {
+  await page.goto('/');
+  await page.route('https://api.sociobot.in/api/v1/products/cycle-block-animator/verify?*', (route) => route.fulfill({ status: 429, headers: { 'Retry-After': '30' }, contentType: 'application/json', body: '{"error":"rate_limited"}' }));
+  await page.locator('#license-token').fill('rate-limit-fixture');
+  await page.getByRole('button', { name: 'Restore license' }).click();
+  await expect(page.locator('#license-status')).toHaveText('Too many license checks. Try again later.');
+});
+
 test('first-load privacy is local-only and the PWA update script bypasses caches', async ({ page }) => {
   const externalRequests: string[] = [];
   page.on('request', (request) => {

@@ -61,4 +61,4 @@ for (const path of shell) {
   check(hash(localFile) === hash(liveFile), `Live shell file ${path} differs from dist`);
 }
 
-console.log(`live release gate: ${shell.length} shell files match; checkout, license, routes, MIME, and response policies pass`);
+console.log(`live release gate: ${shell.length} shell files match; demo, 404, metadata, checkout, license, MIME, and response policies pass`);

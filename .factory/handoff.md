@@ -1,183 +1,133 @@
-# Cycle Blocks review 1 handoff — FAIL
+# Cycle Blocks repair 4 handoff
 
-Reviewed 2026-09-05 UTC against implementation
-`1b4d7718d12dcdb28a9f32a55f1c6ea1b55bdea7`; the report/documentation commit is
-`2ba9aaf43e6313e67a23d33eab0afdfc2fbe352f`. The live app exactly matches the
-implementation artifact.
+Completed 2026-09-05 UTC for work order `cycle-block-animator-repair-4`.
 
-**FAIL — do not promote.** Six findings remain: no one-click isolated sample
-sandbox, no `.factory/claims.json` or claim-tagged test commands (18 public claims
-untested), the previously recorded billing verification rate-limit blocker is
-unresolved, first-screen wording/action misses the plain-words contract, unknown
-routes return the workspace with HTTP 200, and required canonical/social metadata
-is missing. See [review 1](review-1.md) for all evidence and prior-finding
-dispositions.
+- Live URL: <https://cycle-block-animator.sociobot.in>
+- Demo URL: <https://cycle-block-animator.sociobot.in/demo/>
+- Deployed implementation SHA: `e4bf89fc6f21096018bba09f1e36b444e52a6ec0`
+- Verification and claim-test SHA: `fb9ffe5ee0112791e4797711a820afa1085257e0`
+- Deployment ID: `077875ca-d95d-4d6b-b030-1abdb5b9b4cc`
 
-The full clean gate passes:
-
-```sh
-npm ci
-npm test
-npm run typecheck
-npm run lint
-npm run build
-npm run test:e2e
-npm run test:live
-```
-
-Live manual checks confirmed normal import/export, invalid-input recovery,
-60/61-frame boundary behavior, offline root/legal reload, keyboard focus, mobile
-layout, reduced motion, local-only requests, and zero serious/critical axe issues.
-No product code was changed during this review.
-
----
-
-# Cycle Blocks verification 3 handoff — FAIL
-
-Verified 2026-08-28 UTC against candidate
-`b9f4664df9a052a39cf59db31d6f4ec160be5f9b` and
-<https://cycle-block-animator.sociobot.in>.
-
-**FAIL — do not promote.** The product and deployed artifact pass the full local
-quality gate, live identity, functional workflow, PWA/offline, accessibility,
-privacy, browser-policy, and performance checks. The sole release blocker is the
-required server-endpoint rate-limit test: 60 requests at concurrency 20 followed by
-200 at concurrency 50 to the public invalid-license verify endpoint all returned
-HTTP 200; none returned 429 or a `Retry-After` header. The observed threshold is
-therefore greater than 260 requests / not enforced for this burst.
-
-See [.factory/verification-3.md](verification-3.md) for exact commands, artifact
-hashes, functional evidence, and the required remediation. No product code was
-modified by verification.
-
-## How to reproduce
-
-```sh
-npm ci
-npm test
-npm run typecheck
-npm run lint
-npm run build
-npm run test:e2e
-npm run test:live
-```
-
-After the billing API returns 429 plus Retry-After under a comparable rapid burst,
-rerun the complete verification before changing this verdict.
-
----
-
-# Previous repair 3 handoff — superseded by verification 3
-
-Repaired and verified 2026-08-28 for work order
-`cycle-block-animator-repair-3`. The deployed application is
-<https://cycle-block-animator.sociobot.in> and its shipped artifact corresponds
-to repair commit `1b4d7718d12dcdb28a9f32a55f1c6ea1b55bdea7`.
+The implementation and verification SHAs differ only because two later commits
+stabilized and expanded browser tests. They do not change `dist/`.
 
 ## Result
 
-All release-blocking findings in verification commit `a68dceb` are repaired.
-The researched brief, static offline-PWA artifact class, visual system, free
-workflow, and previously passing behavior are unchanged.
+The repository-owned findings are repaired and deployed. The editor still imports,
+cycles, previews, backs up, and exports the user's PNG frames. The repair adds the
+required one-click sandbox, claim evidence, plain first screen, designed 404, and
+complete social and canonical metadata.
 
-## Repairs and regression coverage
+One provider-owned gap remains: the shared Sociobot license-verification endpoint
+still has no supplied 429/`Retry-After` evidence. This static product cannot change
+that service, and this work order expressly forbids modifying or restarting shared
+Sociobot services. The product now deduplicates concurrent checks, caches each token
+verdict for one day, and presents a useful message if the provider returns 429. A
+recorded browser test proves those client controls. Provider enforcement remains a
+named external dependency, not a hidden pass.
 
-- **Production backup restore:** reproduced the live `fetch(data:)` CSP failure.
-  Restore now decodes only embedded base64 PNG data locally into a `Blob`; it
-  makes no connection request and does not weaken `connect-src`. Unit coverage
-  checks local decoding and malformed/non-PNG rejection. Playwright downloads,
-  clears, and restores a two-frame project while applying the exact production
-  CSP, asserting both thumbnails return with no console error. The same case
-  passes on the deployed production origin.
-- **Studio checkout:** reproduced the exact public `404`. Registered the
-  production one-time **Cycle Blocks Studio** product at USD $12 with the
-  Sociobot billing engine and the correct product return URL. The endpoint now
-  returns `303` to `checkout.dodopayments.com`; the hosted page loads as
-  “Sociobot | Checkout” and shows “Cycle Blocks Studio”, `$12.00`, and the
-  one-time-unlock description. Invalid-license verification remains `200` with
-  `{valid:false, reason:"invalid"}` and correct production-origin CORS.
-  `npm run test:live` makes checkout, license, and deployment identity part of
-  the release gate.
-- **Stale Ready result:** recipe changes and export-setting changes now clear
-  the prior bake, disable both downloads, and announce that another bake is
-  required. Regression coverage checks both edit classes after a successful
-  bake.
-- **Mobile targets:** the brand and inline/footer legal links now provide at
-  least 44 × 44 CSS px targets. The 390 × 844 regression measures every affected
-  element rather than inferring from CSS.
-- **Offline legal routes:** the service worker normalizes `/privacy[/]` and
-  `/terms[/]` to their precached `index.html` documents before using the
-  workspace fallback. A fresh active-worker test navigates directly to both
-  routes offline and confirms the correct h1 and retained URL.
+## Repairs
 
-## Clean local verification
+- Added `/demo/` with four original procedural firefly frames, a three-pass offset
+  recipe, and a ready 12-frame export.
+- Demo state exists only in memory. It does not read or write the real project
+  database or license storage.
+- Added the persistent demo label, **Reset demo**, and **Start for real** actions.
+- Replaced slogan and print-shop wording with a job-first headline, named audience,
+  sample action, and three facts visible on a 390 × 664 screen.
+- Added the standard content order: first screen, editor, three steps, scope and
+  privacy, pricing, and footer.
+- Added `.factory/claims.json` with 21 claims and exactly one tagged outcome test per
+  claim. `.factory/demo.md` documents sample data and isolation.
+- Added a real `404.html` and an Azure Static Web Apps 404 response override. The
+  broad workspace fallback was removed.
+- Added canonical, Open Graph, Twitter card, SVG favicon, 180 px touch icon, and an
+  original 1200 × 630 social image to every public content route.
+- Added production-like local static serving so browser tests observe real 404
+  status codes and response policies.
+- Changed license checks to cache results per token for one day and coalesce
+  concurrent calls. Rejected and revoked licenses stay locked; 429 responses get a
+  clear retry message.
+- Added exact 60/61-frame and 4096/4097-pixel boundary checks, corrupt-input
+  recovery, invalid-backup recovery, route axe checks, reduced-motion checks, and
+  live metadata checks.
+- Added `.factory/copy-audit.md` and the required verb-first catalog description.
 
-- `npm ci`: PASS; 142 packages installed, 143 audited, 0 vulnerabilities.
-- `npm test`: PASS; 14/14 Vitest tests across three files.
-- `npm run typecheck`: PASS.
-- `npm run lint`: PASS with zero findings.
-- `npm run build`: PASS; `dist/index.html` is at the artifact root, 17
-  publishable files are precached, and `dist/` is 339,156 bytes.
-- `npm run test:e2e`: PASS; 14/14 local Chromium cases, including the waiting
-  worker/update toast, CSP backup round trip, offline state/recovery, offline
-  legal routes, privacy, keyboard, axe, 200% reflow, and 390 px target audit.
-- Factory URL verification: PASS for local `/`, `/privacy/`, and `/terms/` with
-  correct title, `lang=en`, one h1, main landmark, image alternatives, labeled
-  buttons, and no console/page errors.
-- Visual inspection: PASS at 1440 × 1000 desktop and 390 × 844 mobile; the
-  authoring order remains clear with no horizontal loss.
+## Clean verification
 
-Production output remains below the static budgets: app JS 26.59 kB raw / 9.55
-kB gzip, auxiliary JS 0.76 kB, CSS 10.53 kB raw / 3.39 kB gzip, no fonts,
-15.41 kB mobile illustration, and 144.07 kB desktop illustration.
+The complete gate ran from a detached clean worktree at `fb9ffe5` after `npm ci`:
+
+| Command | Result |
+| --- | --- |
+| `npm ci` | PASS — 142 packages, 0 vulnerabilities |
+| `npm test` | PASS — 14/14 tests |
+| `npm run typecheck` | PASS |
+| `npm run lint` | PASS |
+| `npm run build` | PASS — `dist/index.html`, 22 precached files |
+| `npm run test:e2e` | PASS — 42/42 Chromium tests |
+
+All 21 commands listed in `.factory/claims.json` were then run individually from
+that clean worktree. All 21 passed. The tests exercise the shipped `/demo/` entry,
+downloaded files, pixel alpha, JSON contents, IndexedDB recovery, a new offline
+browser context, exact free limits, a recorded license fixture, request logs, and
+demo isolation.
+
+Build sizes are 30.26 kB raw / 10.75 kB gzip for the app JavaScript and 12.58 kB
+raw / 3.81 kB gzip for CSS. The full `dist/` is 655,458 bytes. No font files ship.
+
+## Local browser and performance checks
+
+- Factory URL checks passed for `/`, `/demo/`, `/privacy/`, and `/terms/`: correct
+  titles, `lang=en`, one h1, one main landmark, image alternatives, labeled buttons,
+  and no console errors.
+- Playwright axe found zero serious or critical issues on the editor, populated
+  demo, both legal pages, and the designed 404.
+- Phone checks passed at 390 × 664 and 390 × 844 with no horizontal overflow. The
+  job, audience, sample action, and all three facts appear before scrolling.
+- Keyboard focus, long-timeline scrolling, preview keys, 200% text, touch targets,
+  and reduced motion passed.
+- Lighthouse 12.8.2 local: Performance 100, Accessibility 100, Best Practices 100,
+  SEO 100; FCP 1.3 s, LCP 1.7 s, TBT 0 ms, CLS 0.
 
 ## Live verification
 
-- Deployment completed through
-  `/opt/fleet/lib/deploy-static.sh cycle-block-animator dist`; the custom domain
-  is Ready over managed TLS.
-- `npm run test:live`: PASS. All 17 service-worker shell URLs and `sw.js` match
-  local `dist/` byte for byte; checkout, invalid-license contract, legal routes,
-  manifest MIME, and response policies pass.
-- Live Playwright: PASS, 13/13 applicable cases. The local-only worker mutation
-  case is intentionally excluded live; it passed in the complete local suite.
-- Factory URL verification: PASS for live `/`, `/privacy/`, and `/terms/` with
-  no console/page errors.
-- Axe at desktop and 390 px: zero serious or critical findings on the workspace,
-  Privacy, and Terms. The workspace retains one non-blocking moderate
-  `landmark-complementary-is-top-level` advisory that predates this repair.
-- Returned invalid token flow: the token is saved under
-  `sb_license:cycle-block-animator`, removed from the visible URL, verified once,
-  cached as invalid, and relocked with the visible inactive-license notice; a
-  reload causes no second verification request.
-- PWA: active controller, `updateViaCache: none`, zero Chromium manifest errors,
-  cache `cycle-blocks-4ef016e9c219` with 17 files, offline root/project recovery,
-  correct offline legal documents, and reduced-motion transition duration of
-  `0.01ms`.
-- Privacy: a fresh first load and core workflow contact only the product origin;
-  there are no analytics, trackers, uploads, CDN scripts, or external fonts.
-  A stored license adds only the documented Sociobot verification request.
-- Response policy: CSP, DENY framing, nosniff, strict referrer policy,
-  Permissions Policy, COOP, and two-year HSTS are live. Hashed assets/icons are
-  immutable for one year; `sw.js` is no-store; the manifest is no-cache and
-  `application/manifest+json`; deployment-only configuration returns 404.
-- TLS certificate matches the product host and is valid through 2027-02-28.
-- Local/live SHA-256 identity: root HTML
-  `ec57fb2438fb91b2e80089744bffed00fe2be0a5f21ed0398e227fbf7b6af3c6`;
-  service worker
-  `63113c7eda4916d3af6aece3210ea920c6fe3fcac584896cf6c7141132144ad9`.
+- Deployment completed successfully to the existing one-replica static product.
+- `npm run test:live` passed: 22 shell files and `sw.js` match local `dist/` byte for
+  byte; demo, 404, metadata, checkout, license response, MIME, and policies pass.
+- The live browser suite passed 41/41 applicable tests. The local-only waiting-worker
+  mutation test passed in the 42-test clean suite and was excluded against live.
+- Factory URL checks passed on `/`, `/demo/`, `/privacy/`, and `/terms/` with no
+  console errors.
+- Fresh desktop and phone contexts identified the job, audience, first action, and
+  three facts. Fresh demo contexts showed four sources, 12 output frames, the demo
+  label, and a ready 312 × 416 PNG at 41 KiB.
+- Live `/does-not-exist` returns HTTP 404 with the designed recovery page.
+- Live Lighthouse 12.8.2: Performance 100, Accessibility 100, Best Practices 100,
+  SEO 100; FCP 1.0 s, LCP 1.1 s, TBT 10 ms, CLS 0, 33 KiB first-load transfer.
+- Evidence is under `/work/.evidence/`, including local/live verifier reports,
+  phone and desktop screenshots, and Lighthouse JSON.
 
-Three Lighthouse 12.8.2 mobile runs scored performance **95 / 100 / 100**,
-accessibility **100**, best practices **100**, and SEO **100**. FCP was
-1.0–1.1 s, LCP 1.1–1.2 s, TBT 40–250 ms, CLS 0, and first-load transfer 32 KiB.
+## Earlier finding disposition
 
-## Applicability and known gaps
-
-Package/consumer and backend suites do not apply to this browser-only static
-PWA. No release-blocking gap remains. A real-money charge and subsequent refund
-were not created during QA; production checkout presentation, redirect,
-return-token handling, cached verification/relock behavior, and the invalid/
-revoked-style locked state were verified without making a purchase.
+| Finding | Disposition |
+| --- | --- |
+| Service-worker install, offline reload, and update | PASS locally and live |
+| Checkout returned 404 | PASS; hosted checkout still returns 303 |
+| Invisible file-picker focus | PASS |
+| Long timeline not keyboard-scrollable | PASS |
+| 200% text overflow | PASS |
+| Offset exceeded its bound | PASS |
+| Cache headers, CSP, framing, and manifest MIME | PASS live |
+| Backup restore failed under production CSP | PASS |
+| Stale ready status after edits | PASS |
+| Small mobile link targets | PASS |
+| Offline legal pages showed the editor | PASS |
+| One-click isolated sample | PASS |
+| Missing claim inventory and tests | PASS — 21/21 |
+| Non-plain first screen | PASS |
+| Unknown routes returned the editor | PASS — deliberate HTTP 404 |
+| Missing canonical and social metadata | PASS |
+| Shared billing API 429/Retry-After evidence | External dependency remains; product request frequency and 429 handling are covered |
 
 ## Re-run
 
@@ -190,3 +140,6 @@ npm run build
 npm run test:e2e
 npm run test:live
 ```
+
+Run all claim commands together with `npm run test:claims`, or run each command
+exactly as listed in `.factory/claims.json`.

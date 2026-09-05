@@ -1,5 +1,29 @@
 # Cycle Blocks repair 4 handoff
 
+## Strict review 2
+
+Reviewed 2026-09-05 UTC for `cycle-block-animator-review-2`.
+
+- Implementation candidate: `e4bf89fc6f21096018bba09f1e36b444e52a6ec0`
+- Documentation/test checkout: `29ea14109c54f2d1aa3f104fd9083326e6cc3de0`
+- Verdict: **PASS — zero findings and zero untested claims.**
+
+From a detached clean worktree, `npm ci`, `npm test` (14/14), typecheck, lint,
+build, `npm run test:e2e` (42/42), and `npm run test:live` passed. Each of the
+21 declared claim commands passed separately. Fresh live desktop and phone
+checks confirmed the job, audience, sample action, facts, stable one-click demo,
+reset, and real-data isolation. Live offline reload, axe, keyboard focus, 200%
+reflow, reduced motion, privacy trace, routes, legal pages, links, designed 404,
+and Lighthouse passed. Lighthouse: Performance 99, Accessibility 100, Best
+Practices 100, SEO 100; LCP 1.1 s, CLS 0.
+
+The provider-side 429/`Retry-After` evidence remains an external dependency,
+not a product finding: this static PWA has no backend, and the client recovery
+path is covered by its claim tests. Complete evidence and earlier-finding
+dispositions: `.factory/review-2.md`.
+
+---
+
 ## Independent verification 4
 
 Verified 2026-09-05 UTC for `cycle-block-animator-verify-4`.

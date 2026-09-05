@@ -1,5 +1,36 @@
 # Cycle Blocks repair 4 handoff
 
+## Independent verification 4
+
+Verified 2026-09-05 UTC for `cycle-block-animator-verify-4`.
+
+- Implementation reviewed: `e4bf89fc6f21096018bba09f1e36b444e52a6ec0`
+- Documentation/test checkout: `8a4418c15def75ca620d5683257e39ae3ee350af`
+- Verdict: **PASS** — zero product findings and zero untested claims.
+
+From a detached clean checkout at the documentation SHA, `npm ci`, `npm test`
+(14/14), `npm run typecheck`, `npm run lint`, `npm run build`,
+`npm run test:e2e` (42/42), and `npm run test:live` all passed. Each of the 21
+commands in `.factory/claims.json` also passed when run separately.
+
+Fresh live desktop and 390 px phone checks found the job, audience, first
+sample action, and three facts before scrolling. The one-click demo showed four
+sample sources, 12 output frames, the persistent demo label, reset behavior,
+and a 312 × 416 px / 41 KiB ready export. A controller-confirmed offline demo
+reload retained all four samples. Live axe/reduced-motion/route checks passed,
+as did the designed HTTP 404, metadata, legal routes, and checkout redirect.
+
+Live Lighthouse 12.8.2: Performance 100, Accessibility 100, Best Practices
+100, SEO 100; FCP 0.9 s, LCP 1.1 s, TBT 60 ms, CLS 0.
+
+The known lack of provider-side 429/`Retry-After` evidence at the shared billing
+service remains outside product scope. It is not a product finding: the static
+PWA has no backend, and client caching, request coalescing, and 429 handling are
+covered by the claim suite. See `.factory/verification-4.md` for complete
+evidence and the disposition of every earlier finding.
+
+---
+
 Completed 2026-09-05 UTC for work order `cycle-block-animator-repair-4`.
 
 - Live URL: <https://cycle-block-animator.sociobot.in>

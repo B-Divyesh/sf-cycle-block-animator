@@ -8,8 +8,8 @@ Completed 2026-09-05 UTC for work order `cycle-block-animator-repair-4`.
 - Verification and claim-test SHA: `fb9ffe5ee0112791e4797711a820afa1085257e0`
 - Deployment ID: `077875ca-d95d-4d6b-b030-1abdb5b9b4cc`
 
-The implementation and verification SHAs differ only because two later commits
-stabilized and expanded browser tests. They do not change `dist/`.
+The implementation and verification SHAs differ because a later commit expanded
+browser tests. The handoff-only commit after it also leaves `dist/` unchanged.
 
 ## Result
 
